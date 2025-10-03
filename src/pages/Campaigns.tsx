@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, List } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
@@ -13,10 +13,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 export default function Campaigns() {
   const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [filterAdvertiser, setFilterAdvertiser] = useState<string>("all");
+
+  // Auto-open drawer from URL query param
+  useEffect(() => {
+    const flightId = searchParams.get('flight');
+    if (flightId) {
+      const flight = flights.find(f => f.id === flightId);
+      if (flight) {
+        setSelectedFlight(flight);
+        setDrawerOpen(true);
+      }
+    }
+  }, [searchParams, flights]);
 
   // Filter campaigns and flights
   const filteredCampaigns = filterAdvertiser === "all"
@@ -95,7 +108,15 @@ export default function Campaigns() {
       if (flight) {
         setSelectedFlight(flight);
         setDrawerOpen(true);
+        setSearchParams({ flight: flight.id });
       }
+    }
+  };
+
+  const handleDrawerClose = (open: boolean) => {
+    setDrawerOpen(open);
+    if (!open) {
+      setSearchParams({});
     }
   };
 
@@ -185,7 +206,7 @@ export default function Campaigns() {
       <FlightDrawer
         flight={selectedFlight}
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onOpenChange={handleDrawerClose}
       />
     </div>
   );

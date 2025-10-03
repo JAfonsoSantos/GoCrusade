@@ -90,6 +90,7 @@ export function FlightDrawer({ flight, open, onOpenChange }: FlightDrawerProps) 
   
   const pacing = calculatePacing(flight, flightDelivery);
   const pacingHealthColor = pacing.health === 'green' ? 'bg-green-500' : pacing.health === 'amber' ? 'bg-amber-500' : 'bg-red-500';
+  const isBehind = pacing.health === 'red';
 
   return (
     <>
@@ -120,6 +121,19 @@ export function FlightDrawer({ flight, open, onOpenChange }: FlightDrawerProps) 
           </DrawerHeader>
 
           <div className="overflow-y-auto px-4 pb-4">
+            {isBehind && (
+              <div className="mb-4 rounded-lg border border-destructive bg-destructive/10 p-4">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1">
+                    <p className="font-semibold text-destructive">Flight Behind Schedule</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      This flight is pacing at {pacing.percentage.toFixed(0)}% of goal. Delivered {pacing.delivered.toLocaleString()} of expected {pacing.expected.toLocaleString()}.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <Tabs defaultValue="general" className="w-full">
               <TabsList className="grid w-full grid-cols-5">
                 <TabsTrigger value="general">General</TabsTrigger>
