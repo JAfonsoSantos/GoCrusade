@@ -7,9 +7,23 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from '@/components/ui/command';
 import { useDemoStore } from '@/demo/DemoProvider';
-import { Megaphone, Target, Users, Building2, Contact } from 'lucide-react';
+import { 
+  Megaphone, 
+  Target, 
+  Users, 
+  Building2, 
+  Contact, 
+  Home, 
+  Package, 
+  BarChart, 
+  Settings, 
+  Link2, 
+  Plus,
+  Kanban
+} from 'lucide-react';
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
@@ -35,15 +49,65 @@ export function CommandPalette() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Search campaigns, flights, opportunities..." />
+      <CommandInput placeholder="Type a command or search..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         
+        <CommandGroup heading="Quick Actions">
+          <CommandItem onSelect={() => handleSelect(() => navigate('/campaigns/new'))}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span>New Campaign</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline'))}>
+            <Plus className="mr-2 h-4 w-4" />
+            <span>New Deal</span>
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+
+        <CommandGroup heading="Navigate">
+          <CommandItem onSelect={() => handleSelect(() => navigate('/'))}>
+            <Home className="mr-2 h-4 w-4" />
+            <span>Dashboard</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline'))}>
+            <Kanban className="mr-2 h-4 w-4" />
+            <span>Pipeline</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/campaigns'))}>
+            <Megaphone className="mr-2 h-4 w-4" />
+            <span>Campaigns</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline/advertisers'))}>
+            <Building2 className="mr-2 h-4 w-4" />
+            <span>Advertisers</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline/brands'))}>
+            <Package className="mr-2 h-4 w-4" />
+            <span>Brands</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline/contacts'))}>
+            <Contact className="mr-2 h-4 w-4" />
+            <span>Contacts</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/integrations'))}>
+            <Link2 className="mr-2 h-4 w-4" />
+            <span>Integrations</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelect(() => navigate('/settings'))}>
+            <Settings className="mr-2 h-4 w-4" />
+            <span>Settings</span>
+          </CommandItem>
+        </CommandGroup>
+
+        <CommandSeparator />
+        
         <CommandGroup heading="Campaigns">
-          {campaigns.map((campaign) => (
+          {campaigns.slice(0, 5).map((campaign) => (
             <CommandItem
               key={campaign.id}
-              onSelect={() => handleSelect(() => navigate(`/campaigns/${campaign.id}`))}
+              onSelect={() => handleSelect(() => navigate(`/campaigns`))}
             >
               <Megaphone className="mr-2 h-4 w-4" />
               <span>{campaign.name}</span>
@@ -51,20 +115,8 @@ export function CommandPalette() {
           ))}
         </CommandGroup>
 
-        <CommandGroup heading="Flights">
-          {flights.map((flight) => (
-            <CommandItem
-              key={flight.id}
-              onSelect={() => handleSelect(() => navigate(`/campaigns`))}
-            >
-              <Megaphone className="mr-2 h-4 w-4 opacity-50" />
-              <span>{flight.name}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
         <CommandGroup heading="Opportunities">
-          {opportunities.map((opp) => (
+          {opportunities.slice(0, 3).map((opp) => (
             <CommandItem
               key={opp.id}
               onSelect={() => handleSelect(() => navigate('/pipeline'))}
@@ -83,18 +135,6 @@ export function CommandPalette() {
             >
               <Building2 className="mr-2 h-4 w-4" />
               <span>{adv.name}</span>
-            </CommandItem>
-          ))}
-        </CommandGroup>
-
-        <CommandGroup heading="Contacts">
-          {contacts.slice(0, 3).map((contact) => (
-            <CommandItem
-              key={contact.id}
-              onSelect={() => handleSelect(() => navigate('/pipeline/contacts'))}
-            >
-              <Contact className="mr-2 h-4 w-4" />
-              <span>{contact.name}</span>
             </CommandItem>
           ))}
         </CommandGroup>
