@@ -61,6 +61,7 @@ interface DemoState {
   deleteCreative: (id: string) => void;
   
   updateOpportunity: (id: string, updates: Partial<Opportunity>) => void;
+  addOpportunity: (opportunity: Opportunity) => void;
   
   addProperty: (property: Property) => void;
   updateProperty: (id: string, updates: Partial<Property>) => void;
@@ -122,6 +123,9 @@ export const useDemoStore = create<DemoState>((set) => ({
     set((state) => ({
       opportunities: state.opportunities.map((o) => (o.id === id ? { ...o, ...updates } : o)),
     })),
+  
+  addOpportunity: (opportunity) =>
+    set((state) => ({ opportunities: [...state.opportunities, opportunity] })),
 
   addProperty: (property) =>
     set((state) => ({ properties: [...state.properties, property] })),
