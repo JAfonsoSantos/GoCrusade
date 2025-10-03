@@ -26,6 +26,8 @@ import Reports from "./pages/insights/Reports";
 import Forecast from "./pages/insights/Forecast";
 import SalesforceIntegration from "./pages/integrations/SalesforceIntegration";
 import KevelIntegration from "./pages/integrations/KevelIntegration";
+import SalesforcePage from "./pages/integrations/SalesforcePage";
+import KevelPage from "./pages/integrations/KevelPage";
 import TestEmail from "./pages/integrations/TestEmail";
 import PersonalSettings from "./pages/settings/PersonalSettings";
 import BusinessSettings from "./pages/settings/BusinessSettings";
@@ -67,6 +69,8 @@ const App = () => (
             
             {/* Integrations routes */}
             <Route path="/integrations" element={<AppLayout><Integrations /></AppLayout>} />
+            <Route path="/integrations/salesforce" element={<AppLayout><SalesforcePage /></AppLayout>} />
+            <Route path="/integrations/kevel" element={<AppLayout><KevelPage /></AppLayout>} />
             
             {/* Settings routes */}
             <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
