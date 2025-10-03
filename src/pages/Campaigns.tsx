@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,6 +122,7 @@ export default function Campaigns() {
   };
 
   return (
+    <ErrorBoundary fallbackMessage="Unable to load campaigns timeline. Please try reloading the page.">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -209,5 +211,6 @@ export default function Campaigns() {
         onOpenChange={handleDrawerClose}
       />
     </div>
+    </ErrorBoundary>
   );
 }

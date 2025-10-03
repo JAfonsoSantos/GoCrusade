@@ -77,6 +77,9 @@ interface DemoState {
   
   addContact: (contact: Contact) => void;
   updateContact: (id: string, updates: Partial<Contact>) => void;
+  
+  // Reset demo data
+  resetDemoData: () => void;
 }
 
 export const useDemoStore = create<DemoState>((set) => ({
@@ -170,4 +173,21 @@ export const useDemoStore = create<DemoState>((set) => ({
     set((state) => ({
       contacts: state.contacts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     })),
+  
+  resetDemoData: () =>
+    set({
+      business: demoBusiness,
+      properties: demoProperties,
+      adUnits: demoAdUnits,
+      advertisers: demoAdvertisers,
+      brands: demoBrands,
+      contacts: demoContacts,
+      opportunities: demoOpportunities,
+      campaigns: demoCampaigns,
+      flights: demoFlights,
+      creatives: demoCreatives,
+      deliveryData: demoDeliveryData,
+      selectedBusinessId: demoBusiness.id,
+      selectedPropertyId: null,
+    }),
 }));

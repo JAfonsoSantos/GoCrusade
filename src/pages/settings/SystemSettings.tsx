@@ -5,14 +5,35 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { supabaseEnabled } from "@/lib/supabase";
 import { resendEnabled, fromEmail, sendTestEmail } from "@/lib/email";
+import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { CheckCircle2, XCircle, Mail, Database, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Mail, Database, Loader2, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function SystemSettings() {
   const { toast } = useToast();
+  const { resetDemoData } = useDemoStore();
   const [testEmail, setTestEmail] = useState("");
   const [sending, setSending] = useState(false);
+
+  const handleResetDemoData = () => {
+    resetDemoData();
+    toast({
+      title: "Demo Data Reset",
+      description: "All data has been reset to the original demo state",
+    });
+  };
 
   const handleSendTestEmail = async () => {
     if (!testEmail.trim()) {
@@ -236,6 +257,41 @@ export default function SystemSettings() {
 
           <p className="text-xs text-muted-foreground mt-4">
             See <code className="bg-muted px-1 py-0.5 rounded">.env.example</code> for configuration template.
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Demo Data</CardTitle>
+          <CardDescription>Reset all data to original demo state</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline" className="w-full">
+                <RotateCcw className="mr-2 h-4 w-4" />
+                Reset Demo Data
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Reset Demo Data?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will delete all your changes and restore the original demo data.
+                  This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleResetDemoData}>
+                  Reset Data
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <p className="text-xs text-muted-foreground mt-4">
+            Resets campaigns, flights, opportunities, advertisers, brands, contacts, and all related data.
           </p>
         </CardContent>
       </Card>

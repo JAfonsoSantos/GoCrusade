@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -133,6 +134,8 @@ function DroppableStage({ stage, children }: DroppableStageProps) {
     },
   });
 
+  const isEmpty = !children || (Array.isArray(children) && children.length === 0);
+
   return (
     <div 
       ref={setNodeRef} 
@@ -140,7 +143,13 @@ function DroppableStage({ stage, children }: DroppableStageProps) {
         isOver ? "border-primary bg-primary/5" : "border-muted"
       }`}
     >
-      {children}
+      {isEmpty ? (
+        <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">
+          Drop an opportunity here
+        </div>
+      ) : (
+        children
+      )}
     </div>
   );
 }
@@ -233,6 +242,7 @@ export default function Pipeline() {
   };
 
   return (
+    <ErrorBoundary fallbackMessage="Unable to load pipeline. Please try reloading the page.">
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -380,5 +390,6 @@ export default function Pipeline() {
         onOpenChange={setNewOppModalOpen}
       />
     </div>
+    </ErrorBoundary>
   );
 }
