@@ -123,6 +123,18 @@ export const demoBrands: Brand[] = [
     advertiser_id: 'adv-2',
     name: 'Ariel',
   },
+  {
+    id: 'brand-3',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-3',
+    name: 'Nescafé',
+  },
+  {
+    id: 'brand-4',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-3',
+    name: 'KitKat',
+  },
 ];
 
 export const demoContacts: Contact[] = [
@@ -152,6 +164,24 @@ export const demoContacts: Contact[] = [
     email: 'ana.costa@nestle.com',
     title: 'Digital Lead',
     sf_id: 'SF-C-003',
+  },
+  {
+    id: 'contact-4',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-1',
+    name: 'Pedro Rodrigues',
+    email: 'pedro.rodrigues@unilever.com',
+    title: 'Media Planner',
+    sf_id: 'SF-C-004',
+  },
+  {
+    id: 'contact-5',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-2',
+    name: 'Sofia Almeida',
+    email: 'sofia.almeida@pg.com',
+    title: 'Campaign Manager',
+    sf_id: 'SF-C-005',
   },
 ];
 
@@ -199,6 +229,28 @@ export const demoOpportunities: Opportunity[] = [
     close_date: '2025-09-20',
     owner: 'Sales User',
   },
+  {
+    id: 'opp-5',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-2',
+    name: 'P&G Multi-Brand Bundle',
+    stage: 'Prospecting',
+    amount: 150000,
+    close_date: '2026-01-30',
+    owner: 'Sales User',
+    sf_id: 'SF-OPP-005',
+  },
+  {
+    id: 'opp-6',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-3',
+    name: 'Nescafé Morning Campaign',
+    stage: 'Closed Lost',
+    amount: 25000,
+    close_date: '2025-09-15',
+    owner: 'Sales User',
+    sf_id: 'SF-OPP-006',
+  },
 ];
 
 export const demoCampaigns: Campaign[] = [
@@ -224,9 +276,23 @@ export const demoCampaigns: Campaign[] = [
     owner: 'Ad Ops User',
     kevel_id: 'KVL-CAMP-002',
   },
+  {
+    id: 'camp-3',
+    business_id: 'demo-business-1',
+    advertiser_id: 'adv-3',
+    property_id: 'prop-1',
+    name: 'Nescafé Morning Rush',
+    status: 'draft',
+    budget: 25000,
+    owner: 'Ad Ops User',
+  },
 ];
 
 const now = new Date();
+const lastWeek = new Date(now);
+lastWeek.setDate(lastWeek.getDate() - 7);
+const nextWeek = new Date(now);
+nextWeek.setDate(nextWeek.getDate() + 7);
 const nextMonth = new Date(now);
 nextMonth.setMonth(nextMonth.getMonth() + 1);
 const twoMonths = new Date(now);
@@ -238,7 +304,7 @@ export const demoFlights: Flight[] = [
     campaign_id: 'camp-1',
     ad_unit_id: 'au-1',
     name: 'Dove Billboard Q4',
-    start_at: now.toISOString().split('T')[0],
+    start_at: lastWeek.toISOString().split('T')[0],
     end_at: nextMonth.toISOString().split('T')[0],
     always_on: false,
     pricing_model: 'CPM',
@@ -254,6 +320,7 @@ export const demoFlights: Flight[] = [
     campaign_id: 'camp-1',
     ad_unit_id: 'au-3',
     name: 'Dove Always-On Rectangle',
+    start_at: lastWeek.toISOString().split('T')[0],
     always_on: true,
     pricing_model: 'FLAT',
     rate: 10000,
@@ -267,6 +334,8 @@ export const demoFlights: Flight[] = [
     campaign_id: 'camp-2',
     ad_unit_id: 'au-2',
     name: 'Ariel CPC Leaderboard',
+    start_at: now.toISOString().split('T')[0],
+    end_at: nextWeek.toISOString().split('T')[0],
     pricing_model: 'CPC',
     rate: 1.5,
     goal_type: 'CLICKS',
@@ -290,6 +359,18 @@ export const demoFlights: Flight[] = [
     priority: 'standard',
     timezone: 'Europe/Lisbon',
   },
+  {
+    id: 'flight-5',
+    campaign_id: 'camp-3',
+    ad_unit_id: 'au-3',
+    name: 'Nescafé Test Flight',
+    always_on: false,
+    pricing_model: 'CPM',
+    rate: 3.0,
+    goal_type: 'none',
+    priority: 'house',
+    timezone: 'Europe/Lisbon',
+  },
 ];
 
 export const demoCreatives: Creative[] = [
@@ -311,20 +392,51 @@ export const demoCreatives: Creative[] = [
     width: 728,
     height: 90,
   },
+  {
+    id: 'creative-3',
+    campaign_id: 'camp-1',
+    name: 'Dove Rectangle 300x250',
+    type: 'image',
+    url: 'https://placeholder.svg',
+    width: 300,
+    height: 250,
+  },
+  {
+    id: 'creative-4',
+    campaign_id: 'camp-2',
+    name: 'Ariel Mobile 320x50',
+    type: 'image',
+    url: 'https://placeholder.svg',
+    width: 320,
+    height: 50,
+  },
 ];
 
-// Generate 14 days of delivery data for flight-1
+// Generate 14 days of delivery data
 export const demoDeliveryData: DeliveryFlightDaily[] = [];
 for (let i = 0; i < 14; i++) {
   const date = new Date(now);
   date.setDate(date.getDate() - (13 - i));
+  
+  // Flight 1 data (CPM, good pacing)
   demoDeliveryData.push({
-    id: `delivery-${i + 1}`,
+    id: `delivery-1-${i + 1}`,
     flight_id: 'flight-1',
     date: date.toISOString().split('T')[0],
-    imps: Math.floor(Math.random() * 100000) + 50000,
-    clicks: Math.floor(Math.random() * 1000) + 500,
-    spend: Math.floor(Math.random() * 500) + 250,
-    convs: Math.floor(Math.random() * 50) + 10,
+    imps: Math.floor(Math.random() * 80000) + 50000,
+    clicks: Math.floor(Math.random() * 800) + 500,
+    spend: Math.floor(Math.random() * 400) + 250,
+    convs: Math.floor(Math.random() * 40) + 10,
+  });
+
+  // Flight 3 data (CPC, at-risk pacing)
+  demoDeliveryData.push({
+    id: `delivery-3-${i + 1}`,
+    flight_id: 'flight-3',
+    date: date.toISOString().split('T')[0],
+    imps: Math.floor(Math.random() * 50000) + 30000,
+    clicks: Math.floor(Math.random() * 500) + 200,
+    spend: Math.floor(Math.random() * 300) + 150,
+    convs: Math.floor(Math.random() * 20) + 5,
   });
 }

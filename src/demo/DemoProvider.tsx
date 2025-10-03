@@ -56,6 +56,10 @@ interface DemoState {
   updateFlight: (id: string, updates: Partial<Flight>) => void;
   deleteFlight: (id: string) => void;
   
+  addCreative: (creative: Creative) => void;
+  updateCreative: (id: string, updates: Partial<Creative>) => void;
+  deleteCreative: (id: string) => void;
+  
   updateOpportunity: (id: string, updates: Partial<Opportunity>) => void;
   
   addProperty: (property: Property) => void;
@@ -63,6 +67,15 @@ interface DemoState {
   
   addAdUnit: (adUnit: AdUnit) => void;
   updateAdUnit: (id: string, updates: Partial<AdUnit>) => void;
+  
+  addAdvertiser: (advertiser: Advertiser) => void;
+  updateAdvertiser: (id: string, updates: Partial<Advertiser>) => void;
+  
+  addBrand: (brand: Brand) => void;
+  updateBrand: (id: string, updates: Partial<Brand>) => void;
+  
+  addContact: (contact: Contact) => void;
+  updateContact: (id: string, updates: Partial<Contact>) => void;
 }
 
 export const useDemoStore = create<DemoState>((set) => ({
@@ -122,5 +135,35 @@ export const useDemoStore = create<DemoState>((set) => ({
   updateAdUnit: (id, updates) =>
     set((state) => ({
       adUnits: state.adUnits.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+    })),
+
+  addCreative: (creative) =>
+    set((state) => ({ creatives: [...state.creatives, creative] })),
+  updateCreative: (id, updates) =>
+    set((state) => ({
+      creatives: state.creatives.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    })),
+  deleteCreative: (id) =>
+    set((state) => ({ creatives: state.creatives.filter((c) => c.id !== id) })),
+
+  addAdvertiser: (advertiser) =>
+    set((state) => ({ advertisers: [...state.advertisers, advertiser] })),
+  updateAdvertiser: (id, updates) =>
+    set((state) => ({
+      advertisers: state.advertisers.map((a) => (a.id === id ? { ...a, ...updates } : a)),
+    })),
+
+  addBrand: (brand) =>
+    set((state) => ({ brands: [...state.brands, brand] })),
+  updateBrand: (id, updates) =>
+    set((state) => ({
+      brands: state.brands.map((b) => (b.id === id ? { ...b, ...updates } : b)),
+    })),
+
+  addContact: (contact) =>
+    set((state) => ({ contacts: [...state.contacts, contact] })),
+  updateContact: (id, updates) =>
+    set((state) => ({
+      contacts: state.contacts.map((c) => (c.id === id ? { ...c, ...updates } : c)),
     })),
 }));
