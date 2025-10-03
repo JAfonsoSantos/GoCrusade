@@ -8,7 +8,7 @@ import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { FlightDrawer } from "@/features/flights/FlightDrawer";
 import { Flight } from "@/lib/types";
-import { calculatePacing } from "@/lib/pacing";
+import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Campaigns() {
@@ -60,25 +60,9 @@ export default function Campaigns() {
     // Flight tasks (children)
     campaignFlights.forEach((flight) => {
       const flightDelivery = deliveryData.filter((d) => d.flight_id === flight.id);
-      const totalImps = flightDelivery.reduce((sum, d) => sum + d.imps, 0);
-      const totalClicks = flightDelivery.reduce((sum, d) => sum + d.clicks, 0);
-      const totalSpend = flightDelivery.reduce((sum, d) => sum + d.spend, 0);
 
-      const pacing = calculatePacing(
-        flight.pricing_model,
-        flight.goal_type,
-        flight.goal_amount || 0,
-        { imps: totalImps, clicks: totalClicks, spend: totalSpend },
-        flight.start_at || "",
-        flight.end_at || ""
-      );
-      
-      const health = pacing.health;
-
-      let barColor = "hsl(var(--muted))";
-      if (health === "green") barColor = "hsl(var(--pacing-good))";
-      if (health === "amber") barColor = "hsl(var(--pacing-warning))";
-      if (health === "red") barColor = "hsl(var(--pacing-danger))";
+      const pacing = calculatePacing(flight, flightDelivery);
+      const barColor = getPacingColor(pacing.health);
 
       const start = flight.start_at ? new Date(flight.start_at) : new Date();
       const end = flight.always_on
@@ -89,11 +73,11 @@ export default function Campaigns() {
 
       tasks.push({
         id: flight.id,
-        name: `${flight.name} • ${flight.pricing_model} • ${totalImps.toLocaleString()} imps`,
+        name: `${flight.name} • ${flight.pricing_model} • ${pacing.delivered.toLocaleString()} delivered`,
         start,
         end,
         type: "task",
-        progress: flight.goal_amount ? Math.min((totalImps / flight.goal_amount) * 100, 100) : 0,
+        progress: pacing.percentage,
         project: campaign.id,
         styles: {
           backgroundColor: barColor,
