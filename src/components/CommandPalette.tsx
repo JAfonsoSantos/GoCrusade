@@ -118,10 +118,12 @@ export function CommandPalette() {
             <CommandItem onSelect={() => handleSelect(() => navigate('/campaigns/new'))}>
               <Plus className="mr-2 h-4 w-4" />
               <span>New Campaign</span>
+              <span className="ml-auto text-xs text-muted-foreground">N then C</span>
             </CommandItem>
             <CommandItem onSelect={() => handleSelect(() => setNewOppOpen(true))}>
               <Plus className="mr-2 h-4 w-4" />
               <span>New Opportunity</span>
+              <span className="ml-auto text-xs text-muted-foreground">N then O</span>
             </CommandItem>
             <CommandItem onSelect={() => handleSelect(() => setShortcutsOpen(true))}>
               <HelpCircle className="mr-2 h-4 w-4" />
@@ -167,6 +169,7 @@ export function CommandPalette() {
           <CommandItem onSelect={() => handleSelect(() => navigate('/integrations'))}>
             <Link2 className="mr-2 h-4 w-4" />
             <span>Integrations</span>
+            <span className="ml-auto text-xs text-muted-foreground">G then I</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelect(() => navigate('/settings'))}>
             <Settings className="mr-2 h-4 w-4" />
