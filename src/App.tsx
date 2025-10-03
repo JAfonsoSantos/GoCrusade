@@ -31,6 +31,7 @@ import KevelPage from "./pages/integrations/KevelPage";
 import TestEmail from "./pages/integrations/TestEmail";
 import PersonalSettings from "./pages/settings/PersonalSettings";
 import BusinessSettings from "./pages/settings/BusinessSettings";
+import SystemSettings from "./pages/settings/SystemSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,7 @@ const App = () => (
             <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
             <Route path="/settings/personal" element={<AppLayout><PersonalSettings /></AppLayout>} />
             <Route path="/settings/business" element={<AppLayout><BusinessSettings /></AppLayout>} />
+            <Route path="/settings/system" element={<AppLayout><SystemSettings /></AppLayout>} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

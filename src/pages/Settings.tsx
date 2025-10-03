@@ -1,6 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { User, Building2 } from "lucide-react";
+import { User, Building2, Settings2 } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Settings() {
@@ -11,7 +11,7 @@ export default function Settings() {
         <p className="text-muted-foreground">Manage your account and business preferences</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-3">
         <Link to="/settings/personal">
           <Card className="group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
             <CardHeader>
@@ -35,6 +35,20 @@ export default function Settings() {
               <CardTitle>Business Settings</CardTitle>
               <CardDescription>
                 Company info, users & roles, properties, and configuration
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </Link>
+
+        <Link to="/settings/system">
+          <Card className="group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1">
+            <CardHeader>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-600 mb-4">
+                <Settings2 className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle>System Settings</CardTitle>
+              <CardDescription>
+                Integration status, email configuration, and environment
               </CardDescription>
             </CardHeader>
           </Card>
