@@ -9,12 +9,14 @@ import { useDemoStore } from "@/demo/DemoProvider";
 import { 
   DndContext, 
   DragEndEvent, 
-  closestCenter, 
+  closestCorners, 
   PointerSensor, 
   useSensor, 
   useSensors,
   DragOverlay,
-  useDroppable
+  useDroppable,
+  DragStartEvent,
+  DragOverEvent
 } from "@dnd-kit/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -32,30 +34,20 @@ const mockStages = [
   "Closed Lost",
 ];
 
-interface SortableOpportunityCardProps {
+interface OpportunityCardProps {
   opp: Opportunity;
   advertiser: { name: string } | undefined;
   onLinkCampaign: (oppId: string) => void;
+  isDragging?: boolean;
+  isOverlay?: boolean;
 }
 
-function SortableOpportunityCard({ opp, advertiser, onLinkCampaign }: SortableOpportunityCardProps) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: opp.id,
-  });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
+function OpportunityCard({ opp, advertiser, onLinkCampaign, isDragging, isOverlay }: OpportunityCardProps) {
   return (
     <Card
-      ref={setNodeRef}
-      style={style}
-      {...attributes}
-      {...listeners}
-      className={`cursor-move transition-shadow ${isDragging ? "shadow-lg z-50" : "hover:shadow-md"}`}
+      className={`transition-shadow ${
+        isDragging ? "opacity-50" : ""
+      } ${isOverlay ? "cursor-grabbing shadow-2xl rotate-3" : "hover:shadow-md"}`}
     >
       <CardHeader className="p-4">
         <CardTitle className="text-sm">{opp.name}</CardTitle>
@@ -93,16 +85,61 @@ function SortableOpportunityCard({ opp, advertiser, onLinkCampaign }: SortableOp
   );
 }
 
+interface SortableOpportunityCardProps {
+  opp: Opportunity;
+  advertiser: { name: string } | undefined;
+  onLinkCampaign: (oppId: string) => void;
+  stage: string;
+}
+
+function SortableOpportunityCard({ opp, advertiser, onLinkCampaign, stage }: SortableOpportunityCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: opp.id,
+    data: {
+      type: 'opportunity',
+      opportunity: opp,
+      containerId: stage,
+    },
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing">
+      <OpportunityCard
+        opp={opp}
+        advertiser={advertiser}
+        onLinkCampaign={onLinkCampaign}
+        isDragging={isDragging}
+      />
+    </div>
+  );
+}
+
 interface DroppableStageProps {
   stage: string;
   children: React.ReactNode;
 }
 
 function DroppableStage({ stage, children }: DroppableStageProps) {
-  const { setNodeRef } = useDroppable({ id: stage });
+  const { setNodeRef, isOver } = useDroppable({
+    id: stage,
+    data: {
+      type: 'container',
+      containerId: stage,
+    },
+  });
 
   return (
-    <div ref={setNodeRef} className="space-y-2 min-h-[200px] rounded-lg p-2 border-2 border-dashed border-muted">
+    <div 
+      ref={setNodeRef} 
+      className={`space-y-2 min-h-[200px] rounded-lg p-2 border-2 border-dashed transition-colors ${
+        isOver ? "border-primary bg-primary/5" : "border-muted"
+      }`}
+    >
       {children}
     </div>
   );
@@ -114,6 +151,7 @@ export default function Pipeline() {
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [newOppModalOpen, setNewOppModalOpen] = useState(false);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -124,22 +162,61 @@ export default function Pipeline() {
     })
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveId(event.active.id as string);
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
+    setActiveId(null);
 
-    if (!over) return;
+    if (!over) {
+      toast({
+        title: "Couldn't move",
+        description: "Try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const oppId = active.id as string;
-    const newStage = over.id as string;
-
-    // Check if dragged to a different stage
     const opp = opportunities.find((o) => o.id === oppId);
-    if (opp && opp.stage !== newStage) {
-      updateOpportunity(oppId, { stage: newStage as any });
+    
+    if (!opp) {
+      toast({
+        title: "Couldn't move",
+        description: "Try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Determine destination containerId
+    let destinationStage: string | undefined;
+    
+    if (over.data.current?.type === 'container') {
+      // Dropped over a container
+      destinationStage = over.data.current.containerId as string;
+    } else if (over.data.current?.type === 'opportunity') {
+      // Dropped over another card - use its container
+      destinationStage = over.data.current.containerId as string;
+    }
+
+    if (!destinationStage || !mockStages.includes(destinationStage)) {
+      toast({
+        title: "Couldn't move",
+        description: "Try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Only update if stage actually changed
+    if (opp.stage !== destinationStage) {
+      updateOpportunity(oppId, { stage: destinationStage as any });
 
       toast({
-        title: "Deal Moved",
-        description: `Moved to ${newStage}`,
+        description: `Moved to ${destinationStage}`,
       });
     }
   };
@@ -186,8 +263,13 @@ export default function Pipeline() {
             ))}
           </div>
 
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <DndContext 
+            sensors={sensors} 
+            collisionDetection={closestCorners} 
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          >
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 select-none">
               {mockStages.map((stage) => {
                 const stageOpportunities = opportunities.filter((o) => o.stage === stage);
                 
@@ -206,6 +288,7 @@ export default function Pipeline() {
                             opp={opp}
                             advertiser={advertiser}
                             onLinkCampaign={handleLinkCampaign}
+                            stage={stage}
                           />
                         );
                       })}
@@ -214,6 +297,20 @@ export default function Pipeline() {
                 );
               })}
             </div>
+            <DragOverlay>
+              {activeId ? (() => {
+                const opp = opportunities.find((o) => o.id === activeId);
+                const advertiser = opp ? advertisers.find((a) => a.id === opp.advertiser_id) : undefined;
+                return opp ? (
+                  <OpportunityCard
+                    opp={opp}
+                    advertiser={advertiser}
+                    onLinkCampaign={handleLinkCampaign}
+                    isOverlay
+                  />
+                ) : null;
+              })() : null}
+            </DragOverlay>
           </DndContext>
         </TabsContent>
 
