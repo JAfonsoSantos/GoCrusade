@@ -14,10 +14,12 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { useDemoStore } from '@/demo/DemoProvider';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Trash2 } from 'lucide-react';
+import { Save, Trash2, ExternalLink } from 'lucide-react';
+import { calculatePacing } from '@/lib/pacing';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,17 +85,38 @@ export function FlightDrawer({ flight, open, onOpenChange }: FlightDrawerProps) 
   const totalImps = flightDelivery.reduce((sum, d) => sum + d.imps, 0);
   const totalClicks = flightDelivery.reduce((sum, d) => sum + d.clicks, 0);
   const totalSpend = flightDelivery.reduce((sum, d) => sum + d.spend, 0);
+  const totalConvs = flightDelivery.reduce((sum, d) => sum + d.convs, 0);
   const ctr = totalImps > 0 ? ((totalClicks / totalImps) * 100).toFixed(2) : '0';
+  
+  const pacing = calculatePacing(flight, flightDelivery);
+  const pacingHealthColor = pacing.health === 'green' ? 'bg-green-500' : pacing.health === 'amber' ? 'bg-amber-500' : 'bg-red-500';
 
   return (
     <>
       <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[90vh]">
           <DrawerHeader>
-            <DrawerTitle>{formData.name || flight.name}</DrawerTitle>
-            <DrawerDescription>
-              {formData.pricing_model || flight.pricing_model} · {adUnit ? `${adUnit.width}×${adUnit.height}` : 'Ad Unit'}
-            </DrawerDescription>
+            <div className="flex items-start justify-between">
+              <div>
+                <DrawerTitle>{formData.name || flight.name}</DrawerTitle>
+                <DrawerDescription>
+                  {formData.pricing_model || flight.pricing_model} · {adUnit ? `${adUnit.width}×${adUnit.height}` : 'Ad Unit'}
+                </DrawerDescription>
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" disabled>
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Edit in Kevel
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Connect Kevel to enable</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
           </DrawerHeader>
 
           <div className="overflow-y-auto px-4 pb-4">
@@ -299,20 +322,52 @@ export function FlightDrawer({ flight, open, onOpenChange }: FlightDrawerProps) 
               <TabsContent value="caps" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Frequency Caps</CardTitle>
+                    <CardTitle>Frequency & Daily Caps</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Set daily or lifetime impression caps, and frequency caps per user.
+                      Set daily impression caps and frequency caps per user.
                     </p>
+                    <div className="space-y-2">
+                      <Label>Daily Impression Cap</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g., 100000"
+                        value={(formData.freq_cap_json as any)?.dailyCap || ''}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            freq_cap_json: { ...(formData.freq_cap_json as any), dailyCap: parseInt(e.target.value) },
+                          })
+                        }
+                      />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label>Impressions per User</Label>
-                        <Input type="number" placeholder="3" />
+                        <Input
+                          type="number"
+                          placeholder="3"
+                          value={(formData.freq_cap_json as any)?.count || ''}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              freq_cap_json: { ...(formData.freq_cap_json as any), count: parseInt(e.target.value) },
+                            })
+                          }
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Time Window</Label>
-                        <Select defaultValue="1d">
+                        <Select
+                          value={(formData.freq_cap_json as any)?.window || '1d'}
+                          onValueChange={(v) =>
+                            setFormData({
+                              ...formData,
+                              freq_cap_json: { ...(formData.freq_cap_json as any), window: v },
+                            })
+                          }
+                        >
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
@@ -349,27 +404,56 @@ export function FlightDrawer({ flight, open, onOpenChange }: FlightDrawerProps) 
               <TabsContent value="delivery" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Delivery Stats</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Delivery Stats</CardTitle>
+                      <Badge className={`${pacingHealthColor} text-white`}>
+                        {pacing.health === 'green' ? 'On Pace' : pacing.health === 'amber' ? 'At Risk' : 'Behind'}
+                      </Badge>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Impressions</p>
-                        <p className="text-2xl font-bold">{totalImps.toLocaleString()}</p>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Pacing</span>
+                        <span className="font-medium">{pacing.percentage.toFixed(1)}%</span>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Clicks</p>
-                        <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Delivered</span>
+                        <span className="font-medium">{pacing.delivered.toLocaleString()}</span>
                       </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">CTR</p>
-                        <p className="text-2xl font-bold">{ctr}%</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Spend</p>
-                        <p className="text-2xl font-bold">€{totalSpend.toLocaleString()}</p>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Goal</span>
+                        <span className="font-medium">{pacing.expected.toLocaleString()}</span>
                       </div>
                     </div>
+
+                    <div className="border-t pt-4 mt-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Impressions</p>
+                          <p className="text-2xl font-bold">{totalImps.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Clicks</p>
+                          <p className="text-2xl font-bold">{totalClicks.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">CTR</p>
+                          <p className="text-2xl font-bold">{ctr}%</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-muted-foreground">Spend</p>
+                          <p className="text-2xl font-bold">€{totalSpend.toLocaleString()}</p>
+                        </div>
+                        {totalConvs > 0 && (
+                          <div>
+                            <p className="text-sm text-muted-foreground">Conversions</p>
+                            <p className="text-2xl font-bold">{totalConvs.toLocaleString()}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                     {flightDelivery.length === 0 && (
                       <p className="text-xs text-muted-foreground">
                         No delivery data yet. Connect Kevel delivery ingest to see real-time stats.

@@ -27,41 +27,44 @@ export function calculatePacing(
   let delivered = 0;
   let expected = 0;
 
-  // Calculate based on pricing model
-  switch (flight.pricing_model) {
-    case 'CPM': {
+  // Calculate based on goal_type and pricing_model
+  // Use delivered vs goal (not total imps)
+  switch (flight.goal_type) {
+    case 'IMPRESSIONS': {
       delivered = totalImps;
-      if (flight.goal_type === 'IMPRESSIONS' && flight.goal_amount) {
-        expected = flight.goal_amount;
-      } else if (flight.start_at && flight.end_at) {
-        const totalDays = Math.ceil(
-          (new Date(flight.end_at).getTime() - new Date(flight.start_at).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        const daysPassed = Math.ceil(
-          (Date.now() - new Date(flight.start_at).getTime()) / (1000 * 60 * 60 * 24)
-        );
-        expected = ((flight.goal_amount || 0) / totalDays) * Math.min(daysPassed, totalDays);
-      }
+      expected = flight.goal_amount || 0;
       break;
     }
-    case 'CPC': {
+    case 'CLICKS': {
       delivered = totalClicks;
-      if (flight.goal_type === 'CLICKS' && flight.goal_amount) {
-        expected = flight.goal_amount;
-      }
+      expected = flight.goal_amount || 0;
       break;
     }
-    case 'CPA': {
+    case 'CONVERSIONS': {
       delivered = totalConvs;
-      if (flight.goal_type === 'CONVERSIONS' && flight.goal_amount) {
-        expected = flight.goal_amount;
-      }
+      expected = flight.goal_amount || 0;
       break;
     }
-    case 'FLAT': {
+    case 'SPEND': {
       delivered = totalSpend;
-      expected = flight.rate;
+      expected = flight.goal_amount || 0;
       break;
+    }
+    default: {
+      // Fallback to pricing model
+      if (flight.pricing_model === 'CPM') {
+        delivered = totalImps;
+        expected = flight.goal_amount || 0;
+      } else if (flight.pricing_model === 'CPC') {
+        delivered = totalClicks;
+        expected = flight.goal_amount || 0;
+      } else if (flight.pricing_model === 'CPA') {
+        delivered = totalConvs;
+        expected = flight.goal_amount || 0;
+      } else if (flight.pricing_model === 'FLAT') {
+        delivered = totalSpend;
+        expected = flight.rate || 0;
+      }
     }
   }
 
