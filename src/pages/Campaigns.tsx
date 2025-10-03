@@ -1,61 +1,126 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, List, Calendar } from "lucide-react";
+import { Plus, List } from "lucide-react";
 import { Link } from "react-router-dom";
-
-const mockCampaigns = [
-  {
-    id: "1",
-    name: "Continente Q1 2025",
-    advertiser: "Sonae MC",
-    flights: 3,
-    status: "active",
-    spend: "€12,450",
-    goal: "€25,000",
-    pacing: 95,
-    startDate: "2025-01-01",
-    endDate: "2025-03-31",
-  },
-  {
-    id: "2",
-    name: "Wells Beauty Campaign",
-    advertiser: "P&G",
-    flights: 2,
-    status: "active",
-    spend: "€8,200",
-    goal: "€18,500",
-    pacing: 88,
-    startDate: "2025-01-15",
-    endDate: "2025-02-28",
-  },
-  {
-    id: "3",
-    name: "Zu Toys Promotion",
-    advertiser: "Mattel",
-    flights: 1,
-    status: "paused",
-    spend: "€0",
-    goal: "€12,000",
-    pacing: 0,
-    startDate: "2025-02-01",
-    endDate: "2025-02-29",
-  },
-];
-
-const getPacingColor = (pacing: number) => {
-  if (pacing >= 95) return "bg-pacing-good";
-  if (pacing >= 80) return "bg-pacing-warning";
-  return "bg-pacing-danger";
-};
+import { useDemoStore } from "@/demo/DemoProvider";
+import { Gantt, Task, ViewMode } from "gantt-task-react";
+import "gantt-task-react/dist/index.css";
+import { FlightDrawer } from "@/features/flights/FlightDrawer";
+import { Flight } from "@/lib/types";
+import { calculatePacing } from "@/lib/pacing";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export default function Campaigns() {
+  const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
+  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
+  const [filterAdvertiser, setFilterAdvertiser] = useState<string>("all");
+
+  // Filter campaigns and flights
+  const filteredCampaigns = filterAdvertiser === "all"
+    ? campaigns
+    : campaigns.filter((c) => c.advertiser_id === filterAdvertiser);
+
+  // Build Gantt tasks
+  const tasks: Task[] = [];
+  
+  filteredCampaigns.forEach((campaign) => {
+    const campaignFlights = flights.filter((f) => f.campaign_id === campaign.id);
+    
+    if (campaignFlights.length === 0) return;
+
+    // Campaign task (parent)
+    const campaignStart = campaignFlights.reduce((earliest, f) => {
+      const fStart = f.start_at ? new Date(f.start_at) : new Date();
+      return fStart < earliest ? fStart : earliest;
+    }, new Date(campaignFlights[0].start_at || new Date()));
+
+    const campaignEnd = campaignFlights.reduce((latest, f) => {
+      if (f.always_on) return latest;
+      const fEnd = f.end_at ? new Date(f.end_at) : new Date();
+      return fEnd > latest ? fEnd : latest;
+    }, new Date(campaignFlights[0].end_at || new Date()));
+
+    tasks.push({
+      id: campaign.id,
+      name: campaign.name,
+      start: campaignStart,
+      end: campaignEnd,
+      type: "project",
+      progress: 0,
+      hideChildren: false,
+      styles: {
+        backgroundColor: "hsl(var(--primary))",
+        backgroundSelectedColor: "hsl(var(--primary))",
+      },
+    });
+
+    // Flight tasks (children)
+    campaignFlights.forEach((flight) => {
+      const flightDelivery = deliveryData.filter((d) => d.flight_id === flight.id);
+      const totalImps = flightDelivery.reduce((sum, d) => sum + d.imps, 0);
+      const totalClicks = flightDelivery.reduce((sum, d) => sum + d.clicks, 0);
+      const totalSpend = flightDelivery.reduce((sum, d) => sum + d.spend, 0);
+
+      const pacing = calculatePacing(
+        flight.pricing_model,
+        flight.goal_type,
+        flight.goal_amount || 0,
+        { imps: totalImps, clicks: totalClicks, spend: totalSpend },
+        flight.start_at || "",
+        flight.end_at || ""
+      );
+      
+      const health = pacing.health;
+
+      let barColor = "hsl(var(--muted))";
+      if (health === "green") barColor = "hsl(var(--pacing-good))";
+      if (health === "amber") barColor = "hsl(var(--pacing-warning))";
+      if (health === "red") barColor = "hsl(var(--pacing-danger))";
+
+      const start = flight.start_at ? new Date(flight.start_at) : new Date();
+      const end = flight.always_on
+        ? new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days for display
+        : flight.end_at
+        ? new Date(flight.end_at)
+        : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+      tasks.push({
+        id: flight.id,
+        name: `${flight.name} • ${flight.pricing_model} • ${totalImps.toLocaleString()} imps`,
+        start,
+        end,
+        type: "task",
+        progress: flight.goal_amount ? Math.min((totalImps / flight.goal_amount) * 100, 100) : 0,
+        project: campaign.id,
+        styles: {
+          backgroundColor: barColor,
+          backgroundSelectedColor: barColor,
+          progressColor: "hsl(var(--primary))",
+          progressSelectedColor: "hsl(var(--primary))",
+        },
+      });
+    });
+  });
+
+  const handleTaskClick = (task: Task) => {
+    if (task.type === "task") {
+      const flight = flights.find((f) => f.id === task.id);
+      if (flight) {
+        setSelectedFlight(flight);
+        setDrawerOpen(true);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
-          <p className="text-muted-foreground">Manage and monitor your advertising campaigns</p>
+          <p className="text-muted-foreground">Timeline view of campaigns and flights</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
@@ -77,70 +142,67 @@ export default function Campaigns() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Timeline</CardTitle>
-              <CardDescription>Visual overview of campaign schedules and performance</CardDescription>
+              <CardTitle>Gantt Timeline</CardTitle>
+              <CardDescription>
+                Campaign delivery and pacing • Green (on pace) • Amber (at risk) • Red (behind)
+              </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm">Month</Button>
-              <Button variant="outline" size="sm">Quarter</Button>
-              <Button variant="outline" size="sm">Custom</Button>
+              <Select value={filterAdvertiser} onValueChange={setFilterAdvertiser}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="All Advertisers" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Advertisers</SelectItem>
+                  {advertisers.map((adv) => (
+                    <SelectItem key={adv.id} value={adv.id}>
+                      {adv.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Select value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ViewMode.Day}>Day</SelectItem>
+                  <SelectItem value={ViewMode.Week}>Week</SelectItem>
+                  <SelectItem value={ViewMode.Month}>Month</SelectItem>
+                  <SelectItem value={ViewMode.Year}>Year</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {mockCampaigns.map((campaign) => (
-              <div key={campaign.id} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`h-3 w-3 rounded-full ${getPacingColor(campaign.pacing)}`} />
-                    <div>
-                      <div className="font-semibold">{campaign.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {campaign.advertiser} · {campaign.flights} flights
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className="text-sm font-medium">{campaign.spend} / {campaign.goal}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {campaign.startDate} → {campaign.endDate}
-                      </div>
-                    </div>
-                    <Badge variant={campaign.status === "active" ? "default" : "secondary"}>
-                      {campaign.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="h-2 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full ${getPacingColor(campaign.pacing)} transition-all`}
-                    style={{ width: `${Math.min(campaign.pacing, 100)}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          {tasks.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Gantt
+                tasks={tasks}
+                viewMode={viewMode}
+                onClick={handleTaskClick}
+                columnWidth={viewMode === ViewMode.Month ? 60 : 40}
+                listCellWidth="200px"
+                ganttHeight={400}
+              />
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No campaigns to display</p>
+              <Button asChild className="mt-4">
+                <Link to="/campaigns/new">Create Your First Campaign</Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Button variant="outline" asChild className="h-auto py-6">
-          <Link to="/campaigns/list" className="flex flex-col items-start gap-2">
-            <List className="h-5 w-5" />
-            <span className="font-semibold">Campaign List</span>
-            <span className="text-xs text-muted-foreground">View all campaigns in a table</span>
-          </Link>
-        </Button>
-        <Button variant="outline" asChild className="h-auto py-6">
-          <Link to="/campaigns/creatives" className="flex flex-col items-start gap-2">
-            <Calendar className="h-5 w-5" />
-            <span className="font-semibold">Creatives</span>
-            <span className="text-xs text-muted-foreground">Manage creative assets</span>
-          </Link>
-        </Button>
-      </div>
+      <FlightDrawer
+        flight={selectedFlight}
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+      />
     </div>
   );
 }
