@@ -3,11 +3,25 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ExternalLink, Plus } from "lucide-react";
+import { ExternalLink, Plus, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDemoStore } from "@/demo/DemoProvider";
-import { DragDropContext, Droppable, Draggable, DropResult } from "react-beautiful-dnd";
+import { 
+  DndContext, 
+  DragEndEvent, 
+  closestCenter, 
+  PointerSensor, 
+  useSensor, 
+  useSensors,
+  DragOverlay,
+  useDroppable
+} from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useToast } from "@/hooks/use-toast";
+import { LinkCampaignModal } from "@/components/LinkCampaignModal";
+import { NewOpportunityModal } from "@/components/NewOpportunityModal";
+import { Opportunity } from "@/lib/types";
 
 const mockStages = [
   "Prospecting",
@@ -18,24 +32,121 @@ const mockStages = [
   "Closed Lost",
 ];
 
+interface SortableOpportunityCardProps {
+  opp: Opportunity;
+  advertiser: { name: string } | undefined;
+  onLinkCampaign: (oppId: string) => void;
+}
+
+function SortableOpportunityCard({ opp, advertiser, onLinkCampaign }: SortableOpportunityCardProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: opp.id,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      className={`cursor-move transition-shadow ${isDragging ? "shadow-lg z-50" : "hover:shadow-md"}`}
+    >
+      <CardHeader className="p-4">
+        <CardTitle className="text-sm">{opp.name}</CardTitle>
+        <CardDescription className="text-xs">{advertiser?.name || "Unknown"}</CardDescription>
+      </CardHeader>
+      <CardContent className="p-4 pt-0 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="font-semibold text-primary">€{opp.amount?.toLocaleString() || "—"}</span>
+          <Badge variant="outline" className="text-xs">
+            {opp.owner}
+          </Badge>
+        </div>
+        <div className="text-xs text-muted-foreground">{opp.close_date}</div>
+        <div className="flex gap-1">
+          <Button
+            size="sm"
+            variant="outline"
+            className="flex-1"
+            onClick={(e) => {
+              e.stopPropagation();
+              onLinkCampaign(opp.id);
+            }}
+          >
+            <LinkIcon className="mr-1 h-3 w-3" />
+            Link Campaign
+          </Button>
+          {opp.sf_id && (
+            <Button size="sm" variant="ghost">
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+interface DroppableStageProps {
+  stage: string;
+  children: React.ReactNode;
+}
+
+function DroppableStage({ stage, children }: DroppableStageProps) {
+  const { setNodeRef } = useDroppable({ id: stage });
+
+  return (
+    <div ref={setNodeRef} className="space-y-2 min-h-[200px] rounded-lg p-2 border-2 border-dashed border-muted">
+      {children}
+    </div>
+  );
+}
+
 export default function Pipeline() {
   const { opportunities, advertisers, updateOpportunity } = useDemoStore();
   const [view, setView] = useState<"kanban" | "list">("kanban");
+  const [linkModalOpen, setLinkModalOpen] = useState(false);
+  const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
+  const [newOppModalOpen, setNewOppModalOpen] = useState(false);
   const { toast } = useToast();
 
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  );
 
-    if (!destination) return;
-    if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
 
-    const newStage = destination.droppableId;
-    updateOpportunity(draggableId, { stage: newStage });
+    if (!over) return;
 
-    toast({
-      title: "Deal Moved",
-      description: `Moved to ${newStage}`,
-    });
+    const oppId = active.id as string;
+    const newStage = over.id as string;
+
+    // Check if dragged to a different stage
+    const opp = opportunities.find((o) => o.id === oppId);
+    if (opp && opp.stage !== newStage) {
+      updateOpportunity(oppId, { stage: newStage as any });
+
+      toast({
+        title: "Deal Moved",
+        description: `Moved to ${newStage}`,
+      });
+    }
+  };
+
+  const handleLinkCampaign = (oppId: string) => {
+    setSelectedOpportunityId(oppId);
+    setLinkModalOpen(true);
   };
 
   const getStageTotal = (stage: string) => {
@@ -51,7 +162,7 @@ export default function Pipeline() {
           <h1 className="text-3xl font-bold tracking-tight">Pipeline</h1>
           <p className="text-muted-foreground">Manage your sales opportunities</p>
         </div>
-        <Button>
+        <Button onClick={() => setNewOppModalOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
           New Opportunity
         </Button>
@@ -75,80 +186,35 @@ export default function Pipeline() {
             ))}
           </div>
 
-          <DragDropContext onDragEnd={handleDragEnd}>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {mockStages.map((stage) => (
-                <div key={stage} className="space-y-3">
-                  <div className="font-semibold text-sm flex items-center justify-between">
-                    <span>{stage}</span>
-                    <Badge variant="secondary">
-                      {opportunities.filter((o) => o.stage === stage).length}
-                    </Badge>
+              {mockStages.map((stage) => {
+                const stageOpportunities = opportunities.filter((o) => o.stage === stage);
+                
+                return (
+                  <div key={stage} className="space-y-3">
+                    <div className="font-semibold text-sm flex items-center justify-between">
+                      <span>{stage}</span>
+                      <Badge variant="secondary">{stageOpportunities.length}</Badge>
+                    </div>
+                    <DroppableStage stage={stage}>
+                      {stageOpportunities.map((opp) => {
+                        const advertiser = advertisers.find((a) => a.id === opp.advertiser_id);
+                        return (
+                          <SortableOpportunityCard
+                            key={opp.id}
+                            opp={opp}
+                            advertiser={advertiser}
+                            onLinkCampaign={handleLinkCampaign}
+                          />
+                        );
+                      })}
+                    </DroppableStage>
                   </div>
-                  <Droppable droppableId={stage}>
-                    {(provided, snapshot) => (
-                      <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className={`space-y-2 min-h-[200px] ${
-                          snapshot.isDraggingOver ? "bg-muted/50 rounded-lg p-2" : ""
-                        }`}
-                      >
-                        {opportunities
-                          .filter((opp) => opp.stage === stage)
-                          .map((opp, index) => {
-                            const advertiser = advertisers.find((a) => a.id === opp.advertiser_id);
-                            return (
-                              <Draggable key={opp.id} draggableId={opp.id} index={index}>
-                                {(provided, snapshot) => (
-                                  <Card
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    {...provided.dragHandleProps}
-                                    className={`cursor-move transition-shadow ${
-                                      snapshot.isDragging ? "shadow-lg" : "hover:shadow-md"
-                                    }`}
-                                  >
-                                    <CardHeader className="p-4">
-                                      <CardTitle className="text-sm">{opp.name}</CardTitle>
-                                      <CardDescription className="text-xs">
-                                        {advertiser?.name || "Unknown"}
-                                      </CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="p-4 pt-0 space-y-2">
-                                      <div className="flex items-center justify-between text-xs">
-                                        <span className="font-semibold text-primary">
-                                          €{opp.amount?.toLocaleString() || "—"}
-                                        </span>
-                                        <Badge variant="outline" className="text-xs">
-                                          {opp.owner}
-                                        </Badge>
-                                      </div>
-                                      <div className="text-xs text-muted-foreground">{opp.close_date}</div>
-                                      <div className="flex gap-1">
-                                        <Button size="sm" variant="outline" className="flex-1">
-                                          Link Campaign
-                                        </Button>
-                                        {opp.sf_id && (
-                                          <Button size="sm" variant="ghost">
-                                            <ExternalLink className="h-3 w-3" />
-                                          </Button>
-                                        )}
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                )}
-                              </Draggable>
-                            );
-                          })}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          </DragDropContext>
+          </DndContext>
         </TabsContent>
 
         <TabsContent value="list">
@@ -205,6 +271,17 @@ export default function Pipeline() {
           </Link>
         </Button>
       </div>
+
+      <LinkCampaignModal
+        opportunityId={selectedOpportunityId}
+        open={linkModalOpen}
+        onOpenChange={setLinkModalOpen}
+      />
+
+      <NewOpportunityModal
+        open={newOppModalOpen}
+        onOpenChange={setNewOppModalOpen}
+      />
     </div>
   );
 }
