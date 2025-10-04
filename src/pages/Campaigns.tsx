@@ -13,6 +13,11 @@ import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const ROW_HEIGHT = 44;
+const LIST_WIDTH = "240px";
+const COL_WIDTH = 64;
+const FONT_SIZE = "12";
+
 export default function Campaigns() {
   const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -45,73 +50,96 @@ export default function Campaigns() {
     ? campaigns
     : campaigns.filter((c) => c.advertiser_id === filterAdvertiser);
 
-  // Build Gantt tasks
-  const tasks: Task[] = [];
-  
-  filteredCampaigns.forEach((campaign) => {
-    const campaignFlights = flights.filter((f) => f.campaign_id === campaign.id);
+  // Build Gantt tasks with proper campaign span calculation
+  const [tasks, setTasks] = useState<Task[]>([]);
+
+  useEffect(() => {
+    const newTasks: Task[] = [];
     
-    if (campaignFlights.length === 0) return;
+    filteredCampaigns.forEach((campaign) => {
+      const campaignFlights = flights.filter((f) => f.campaign_id === campaign.id);
+      
+      if (campaignFlights.length === 0) return;
 
-    // Campaign task (parent)
-    const campaignStart = campaignFlights.reduce((earliest, f) => {
-      const fStart = f.start_at ? new Date(f.start_at) : new Date();
-      return fStart < earliest ? fStart : earliest;
-    }, new Date(campaignFlights[0].start_at || new Date()));
+      // Calculate campaign span from earliest start to latest end across all flights
+      const flightStarts = campaignFlights.map(f => 
+        f.start_at ? new Date(f.start_at).getTime() : Date.now()
+      );
+      const flightEnds = campaignFlights.map(f => {
+        if (f.always_on) return Date.now() + 90 * 24 * 60 * 60 * 1000;
+        return f.end_at ? new Date(f.end_at).getTime() : Date.now() + 30 * 24 * 60 * 60 * 1000;
+      });
 
-    const campaignEnd = campaignFlights.reduce((latest, f) => {
-      if (f.always_on) return latest;
-      const fEnd = f.end_at ? new Date(f.end_at) : new Date();
-      return fEnd > latest ? fEnd : latest;
-    }, new Date(campaignFlights[0].end_at || new Date()));
+      const campaignStart = new Date(Math.min(...flightStarts));
+      const campaignEnd = new Date(Math.max(...flightEnds));
 
-    tasks.push({
-      id: campaign.id,
-      name: campaign.name,
-      start: campaignStart,
-      end: campaignEnd,
-      type: "project",
-      progress: 0,
-      hideChildren: false,
-      styles: {
-        backgroundColor: "#93c5fd",
-        backgroundSelectedColor: "#60a5fa",
-      },
-    });
-
-    // Flight tasks (children)
-    campaignFlights.forEach((flight) => {
-      const flightDelivery = deliveryData.filter((d) => d.flight_id === flight.id);
-
-      const pacing = calculatePacing(flight, flightDelivery);
-      const barColor = getPacingColor(pacing.health);
-
-      const start = flight.start_at ? new Date(flight.start_at) : new Date();
-      const end = flight.always_on
-        ? new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000) // 90 days for display
-        : flight.end_at
-        ? new Date(flight.end_at)
-        : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
-
-      tasks.push({
-        id: flight.id,
-        name: `${flight.name} • ${flight.pricing_model} • ${pacing.delivered.toLocaleString()} delivered`,
-        start,
-        end,
-        type: "task",
-        progress: pacing.percentage,
-        project: campaign.id,
+      // Campaign task (parent)
+      newTasks.push({
+        id: campaign.id,
+        name: campaign.name,
+        start: campaignStart,
+        end: campaignEnd,
+        type: "project",
+        progress: 0,
+        hideChildren: false,
         styles: {
-          backgroundColor: barColor,
-          backgroundSelectedColor: barColor,
-          progressColor: "hsl(var(--primary))",
-          progressSelectedColor: "hsl(var(--primary))",
+          backgroundColor: "#93c5fd",
+          backgroundSelectedColor: "#60a5fa",
+          progressColor: "#60a5fa",
+          progressSelectedColor: "#1d4ed8",
         },
       });
+
+      // Flight tasks (children)
+      campaignFlights.forEach((flight) => {
+        const flightDelivery = deliveryData.filter((d) => d.flight_id === flight.id);
+        const pacing = calculatePacing(flight, flightDelivery);
+        const barColor = getPacingColor(pacing.health);
+
+        const start = flight.start_at ? new Date(flight.start_at) : new Date();
+        const end = flight.always_on
+          ? new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000)
+          : flight.end_at
+          ? new Date(flight.end_at)
+          : new Date(start.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+        newTasks.push({
+          id: flight.id,
+          name: `${flight.name} • ${flight.pricing_model} • ${pacing.delivered.toLocaleString()} delivered`,
+          start,
+          end,
+          type: "task",
+          progress: pacing.percentage,
+          project: campaign.id,
+          styles: {
+            backgroundColor: barColor,
+            backgroundSelectedColor: barColor,
+            progressColor: barColor,
+            progressSelectedColor: barColor,
+          },
+        });
+      });
     });
-  });
+
+    setTasks(newTasks);
+  }, [filteredCampaigns, flights, deliveryData]);
+
+  // Toggle expand/collapse for campaign
+  const toggleProject = (task: Task) => {
+    setTasks(prev => prev.map(t => 
+      t.id === task.id ? { ...t, hideChildren: !t.hideChildren } : t
+    ));
+  };
 
   const handleTaskSelect = (task: Task, isSelected: boolean) => {
+    if (!task) return;
+    
+    if (task.type === "project") {
+      // Toggle expand/collapse when clicking campaign bar
+      toggleProject(task);
+      return;
+    }
+    
     if (task.type === "task" && task.id.startsWith("flt_")) {
       const flight = flights.find((f) => f.id === task.id);
       if (flight) {
@@ -120,7 +148,6 @@ export default function Campaigns() {
         setSearchParams({ flight: flight.id });
       }
     }
-    // Project tasks do nothing or could toggle collapse
   };
 
   const handleDrawerClose = (open: boolean) => {
@@ -200,18 +227,21 @@ export default function Campaigns() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : tasks.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Gantt
-                tasks={tasks}
-                viewMode={viewMode}
-                onSelect={handleTaskSelect}
-                columnWidth={64}
-                listCellWidth="240px"
-                rowHeight={44}
-                barCornerRadius={3}
-                fontSize="12"
-                ganttHeight={400}
-              />
+            <div className="gantt-container">
+              <div className="gantt-wrapper">
+                <Gantt
+                  tasks={tasks}
+                  viewMode={viewMode}
+                  onSelect={handleTaskSelect}
+                  onExpanderClick={toggleProject}
+                  columnWidth={COL_WIDTH}
+                  listCellWidth={LIST_WIDTH}
+                  rowHeight={ROW_HEIGHT}
+                  barCornerRadius={3}
+                  fontSize={FONT_SIZE}
+                  ganttHeight={400}
+                />
+              </div>
             </div>
           ) : (
             <div className="text-center py-12">
