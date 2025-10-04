@@ -4,9 +4,19 @@ import { ArrowRight, Zap, Link as LinkIcon, TrendingUp, Target, Megaphone, Dolla
 import { Link } from "react-router-dom";
 import { useProfile } from "@/hooks/useProfile";
 import { SeedDemoDataButton } from "@/components/SeedDemoDataButton";
+import { useWorkspaceStore } from "@/store/workspace";
+import { useEffect } from "react";
 
 export default function Home() {
   const { data: profile, isLoading } = useProfile();
+  const setCurrent = useWorkspaceStore(state => state.setCurrent);
+
+  // Set workspace when profile loads
+  useEffect(() => {
+    if (profile?.business) {
+      setCurrent(profile.business as any);
+    }
+  }, [profile, setCurrent]);
   
   // Show seed data button if user has no business
   if (!isLoading && !profile?.business_id) {

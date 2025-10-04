@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useWorkspaceStore, Workspace } from '@/store/workspace';
+import { useBusinesses } from '@/hooks/useBusinesses';
 
 interface SwitchWorkspaceModalProps {
   open: boolean;
@@ -19,9 +20,10 @@ interface SwitchWorkspaceModalProps {
 
 export function SwitchWorkspaceModal({ open, onOpenChange }: SwitchWorkspaceModalProps) {
   const [search, setSearch] = useState('');
-  const { all, current, setCurrent } = useWorkspaceStore();
+  const { current, setCurrent } = useWorkspaceStore();
+  const { data: businesses = [] } = useBusinesses();
 
-  const filtered = all.filter(w =>
+  const filtered = businesses.filter(w =>
     w.name.toLowerCase().includes(search.toLowerCase())
   );
 
