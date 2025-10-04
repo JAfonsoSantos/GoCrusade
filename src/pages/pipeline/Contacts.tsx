@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2, Mail, ExternalLink } from "lucide-react";
-import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { openContactTab } from "@/lib/openInTab";
+import { useContacts, useCreateContact, useUpdateContact } from "@/hooks/useContacts";
+import { useAdvertisers } from "@/hooks/useAdvertisers";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Sheet,
   SheetContent,
@@ -51,10 +53,14 @@ import {
 
 export default function Contacts() {
   const navigate = useNavigate();
-  const { contacts, advertisers, brands, addContact, updateContact, business } = useDemoStore();
+  const { data: contacts = [] } = useContacts();
+  const { data: advertisers = [] } = useAdvertisers();
+  const { data: profile } = useProfile();
+  const createContact = useCreateContact();
+  const updateContact = useUpdateContact();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [editingContact, setEditingContact] = useState<any | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -121,27 +127,28 @@ export default function Contacts() {
     }
 
     if (editingContact) {
-      updateContact(editingContact.id, {
-        ...formData,
-        advertiser_id: formData.advertiser_id || undefined,
-      });
-      toast({
-        title: "Contact Updated",
-        description: `${formData.name} has been updated`,
-      });
-    } else {
-      const newContact: Contact = {
-        id: `contact-${Date.now()}`,
-        business_id: business.id,
+      updateContact.mutate({
+        id: editingContact.id,
         name: formData.name,
         email: formData.email,
-        title: formData.title || undefined,
-        advertiser_id: formData.advertiser_id || undefined,
-      };
-      addContact(newContact);
-      toast({
-        title: "Contact Created",
-        description: `${formData.name} has been added`,
+        title: formData.title || null,
+        advertiser_id: formData.advertiser_id || null,
+      });
+    } else {
+      if (!profile?.business_id) {
+        toast({
+          title: "Error",
+          description: "No business found",
+          variant: "destructive",
+        });
+        return;
+      }
+      createContact.mutate({
+        business_id: profile.business_id,
+        name: formData.name,
+        email: formData.email,
+        title: formData.title || null,
+        advertiser_id: formData.advertiser_id || null,
       });
     }
 
@@ -158,10 +165,6 @@ export default function Contacts() {
       setContactToDelete(null);
     }
   };
-
-  const selectedAdvertiserBrands = formData.advertiser_id
-    ? brands.filter((b) => b.advertiser_id === formData.advertiser_id)
-    : [];
 
   return (
     <div className="space-y-6">
@@ -335,24 +338,6 @@ export default function Contacts() {
                 </SelectContent>
               </Select>
             </div>
-
-            {selectedAdvertiserBrands.length > 0 && (
-              <div className="border-t pt-3">
-                <p className="text-xs text-muted-foreground mb-2">
-                  Associated Brands ({selectedAdvertiserBrands.length})
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedAdvertiserBrands.map((brand) => (
-                    <div
-                      key={brand.id}
-                      className="text-xs bg-muted px-2 py-1 rounded"
-                    >
-                      {brand.name}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <div className="flex gap-2 pt-4">
               <Button variant="outline" onClick={() => setDrawerOpen(false)} className="flex-1">

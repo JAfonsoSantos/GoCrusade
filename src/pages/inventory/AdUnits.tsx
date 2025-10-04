@@ -2,16 +2,27 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
-
-const mockAdUnits = [
-  { id: "1", name: "Homepage Leaderboard", size: "970x250", property: "continente.pt", iab: "Leaderboard" },
-  { id: "2", name: "Sidebar Rectangle", size: "300x250", property: "continente.pt", iab: "Medium Rectangle" },
-  { id: "3", name: "Mobile Banner", size: "320x50", property: "continente.pt", iab: "Mobile Banner" },
-  { id: "4", name: "Category Top", size: "728x90", property: "wells.pt", iab: "Leaderboard" },
-  { id: "5", name: "Product Sidebar", size: "300x600", property: "wells.pt", iab: "Half Page" },
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdUnits() {
+  const { data: adUnits = [], isLoading } = useQuery({
+    queryKey: ['ad_units'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('ad_unit')
+        .select(`
+          *,
+          property:property(name)
+        `)
+        .order('name');
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -27,26 +38,40 @@ export default function AdUnits() {
 
       <Card>
         <CardHeader>
-          <CardTitle>All Ad Units</CardTitle>
+          <CardTitle>All Ad Units ({adUnits.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            {mockAdUnits.map((unit) => (
-              <div
-                key={unit.id}
-                className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
-              >
-                <div>
-                  <div className="font-semibold">{unit.name}</div>
-                  <div className="text-sm text-muted-foreground">{unit.property}</div>
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-16 w-full" />
+            </div>
+          ) : adUnits.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No ad units found. Create one to get started.
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {adUnits.map((unit: any) => (
+                <div
+                  key={unit.id}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-muted/50 transition-colors"
+                >
+                  <div>
+                    <div className="font-semibold">{unit.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {unit.property?.name || 'Unknown property'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{unit.width}×{unit.height}</Badge>
+                    {unit.iab_standard && <Badge variant="secondary">IAB Standard</Badge>}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{unit.size}</Badge>
-                  <Badge variant="secondary">{unit.iab}</Badge>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

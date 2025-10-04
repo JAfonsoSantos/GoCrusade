@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Plus, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useDemoStore } from "@/demo/DemoProvider";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   DndContext, 
@@ -26,6 +25,8 @@ import { useToast } from "@/hooks/use-toast";
 import { LinkCampaignModal } from "@/components/LinkCampaignModal";
 import { NewOpportunityModal } from "@/components/NewOpportunityModal";
 import { Opportunity } from "@/lib/types";
+import { useOpportunities, useUpdateOpportunity } from "@/hooks/useOpportunities";
+import { useAdvertisers } from "@/hooks/useAdvertisers";
 
 const mockStages = [
   "Prospecting",
@@ -156,13 +157,14 @@ function DroppableStage({ stage, children }: DroppableStageProps) {
 }
 
 export default function Pipeline() {
-  const { opportunities, advertisers, updateOpportunity } = useDemoStore();
+  const { data: opportunities = [], isLoading: oppsLoading } = useOpportunities();
+  const { data: advertisers = [] } = useAdvertisers();
+  const updateOpportunityMutation = useUpdateOpportunity();
   const [view, setView] = useState<"kanban" | "list">("kanban");
   const [linkModalOpen, setLinkModalOpen] = useState(false);
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [newOppModalOpen, setNewOppModalOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -172,12 +174,6 @@ export default function Pipeline() {
       },
     })
   );
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
@@ -212,7 +208,10 @@ export default function Pipeline() {
 
     // Only update if stage actually changed
     if (opp.stage !== destinationStage) {
-      updateOpportunity(oppId, { stage: destinationStage as any });
+      updateOpportunityMutation.mutate({ 
+        id: oppId, 
+        stage: destinationStage as any 
+      });
 
       toast({
         description: `Moved to ${destinationStage}`,
@@ -252,7 +251,7 @@ export default function Pipeline() {
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4">
-          {isLoading ? (
+          {oppsLoading ? (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6 mb-2">
                 {mockStages.map((stage) => (

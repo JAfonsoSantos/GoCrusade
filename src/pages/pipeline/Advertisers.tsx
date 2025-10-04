@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2, ExternalLink } from "lucide-react";
-import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { openAdvertiserTab } from "@/lib/openInTab";
+import { useAdvertisers, useCreateAdvertiser, useUpdateAdvertiser } from "@/hooks/useAdvertisers";
+import { useOpportunities } from "@/hooks/useOpportunities";
+import { useProfile } from "@/hooks/useProfile";
 import {
   Sheet,
   SheetContent,
@@ -44,10 +46,14 @@ import {
 
 export default function Advertisers() {
   const navigate = useNavigate();
-  const { advertisers, opportunities, brands, addAdvertiser, updateAdvertiser, business } = useDemoStore();
+  const { data: advertisers = [] } = useAdvertisers();
+  const { data: opportunities = [] } = useOpportunities();
+  const { data: profile } = useProfile();
+  const createAdvertiser = useCreateAdvertiser();
+  const updateAdvertiser = useUpdateAdvertiser();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [editingAdvertiser, setEditingAdvertiser] = useState<Advertiser | null>(null);
+  const [editingAdvertiser, setEditingAdvertiser] = useState<any | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [advertiserToDelete, setAdvertiserToDelete] = useState<string | null>(null);
   const { toast } = useToast();
@@ -88,22 +94,23 @@ export default function Advertisers() {
     }
 
     if (editingAdvertiser) {
-      updateAdvertiser(editingAdvertiser.id, formData);
-      toast({
-        title: "Advertiser Updated",
-        description: `${formData.name} has been updated`,
+      updateAdvertiser.mutate({
+        id: editingAdvertiser.id,
+        ...formData
       });
     } else {
-      const newAdvertiser: Advertiser = {
-        id: `adv-${Date.now()}`,
-        business_id: business.id,
+      if (!profile?.business_id) {
+        toast({
+          title: "Error",
+          description: "No business found",
+          variant: "destructive",
+        });
+        return;
+      }
+      createAdvertiser.mutate({
+        business_id: profile.business_id,
         name: formData.name,
-        parent_name: formData.parent_name || undefined,
-      };
-      addAdvertiser(newAdvertiser);
-      toast({
-        title: "Advertiser Created",
-        description: `${formData.name} has been added`,
+        parent_name: formData.parent_name || null,
       });
     }
 
@@ -170,7 +177,6 @@ export default function Advertisers() {
               ) : (
                 filteredAdvertisers.map((advertiser) => {
                   const oppCount = opportunities.filter((o) => o.advertiser_id === advertiser.id).length;
-                  const brandCount = brands.filter((b) => b.advertiser_id === advertiser.id).length;
 
                   return (
                     <TableRow 
@@ -185,7 +191,7 @@ export default function Advertisers() {
                       <TableCell className="text-muted-foreground">
                         {advertiser.parent_name || "—"}
                       </TableCell>
-                      <TableCell>{brandCount}</TableCell>
+                      <TableCell>—</TableCell>
                       <TableCell>{oppCount}</TableCell>
                       <TableCell>
                         {advertiser.sf_id && (

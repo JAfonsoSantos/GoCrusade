@@ -4,7 +4,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Plus, List } from "lucide-react";
 import { Link, useSearchParams, useNavigate } from "react-router-dom";
-import { useDemoStore } from "@/demo/DemoProvider";
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { FlightDrawer } from "@/features/flights/FlightDrawer";
@@ -14,6 +13,9 @@ import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { openCampaignTab } from "@/lib/openInTab";
+import { useCampaigns } from "@/hooks/useCampaigns";
+import { useFlights } from "@/hooks/useFlights";
+import { useAdvertisers } from "@/hooks/useAdvertisers";
 
 const ROW_HEIGHT = 44;
 const LIST_WIDTH = "240px";
@@ -22,7 +24,9 @@ const FONT_SIZE = "12";
 
 export default function Campaigns() {
   const navigate = useNavigate();
-  const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
+  const { data: campaigns = [], isLoading: campaignsLoading } = useCampaigns();
+  const { data: flights = [] } = useFlights();
+  const { data: advertisers = [] } = useAdvertisers();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
@@ -31,7 +35,6 @@ export default function Campaigns() {
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [filterAdvertiser, setFilterAdvertiser] = useState<string>("all");
   const [expandedCampaignIds, setExpandedCampaignIds] = useState<Set<string>>(new Set());
-  const [isLoading, setIsLoading] = useState(true);
 
   // Auto-open flight drawer from URL query param
   useEffect(() => {
@@ -49,12 +52,6 @@ export default function Campaigns() {
   useEffect(() => {
     setExpandedCampaignIds(new Set(campaigns.map(c => c.id)));
   }, [campaigns]);
-
-  // Simulate loading
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
-  }, []);
 
   // Filter campaigns and flights
   const filteredCampaigns = filterAdvertiser === "all"
@@ -103,9 +100,9 @@ export default function Campaigns() {
 
       // Flight tasks (children)
       campaignFlights.forEach((flight) => {
-        const flightDelivery = deliveryData.filter((d) => d.flight_id === flight.id);
-        const pacing = calculatePacing(flight, flightDelivery);
-        const barColor = getPacingColor(pacing.health);
+        // Simplified pacing - no delivery data for now
+        const pacing = { health: 'on-track', percentage: 50, delivered: 0 };
+        const barColor = getPacingColor(pacing.health as any);
 
         const start = flight.start_at ? new Date(flight.start_at) : new Date();
         const end = flight.always_on
@@ -133,7 +130,7 @@ export default function Campaigns() {
     });
 
     setTasks(newTasks);
-  }, [filteredCampaigns, flights, deliveryData, expandedCampaignIds]);
+  }, [filteredCampaigns, flights, expandedCampaignIds]);
 
   // Toggle expand/collapse for campaign (caret only)
   const toggleProject = (task: Task) => {
@@ -247,7 +244,7 @@ export default function Campaigns() {
               Scroll horizontally to see more months
             </p>
           </div>
-          {isLoading ? (
+          {campaignsLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-12 w-full" />
               <Skeleton className="h-12 w-full" />
