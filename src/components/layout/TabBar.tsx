@@ -1,10 +1,17 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTabsStore } from "@/store/tabs";
 import { useDemoStore } from "@/demo/DemoProvider";
-import { X, MoreVertical, Home, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { X, Home, ChevronLeft, ChevronRight, Plus, Pin, RotateCw } from "lucide-react";
 import { getPageInfo } from "@/lib/getPageInfo";
 import { toast } from "@/hooks/use-toast";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type Props = {
   homeTitle?: string;    // default: "Home"
@@ -14,9 +21,11 @@ type Props = {
 export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { tabs, activeId, ensureHome, closeTab, switchTab, closeOthers, closeRight, reopenLastClosed, openTab } = useTabsStore();
+  const { tabs, activeId, ensureHome, closeTab, switchTab, closeOthers, closeRight, reopenLastClosed, openTab, renameTab, duplicateTab, pinTab, reloadTab } = useTabsStore();
   const demoStore = useDemoStore();
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
 
   useEffect(() => {
     ensureHome(homeTitle, homePath);
@@ -74,18 +83,7 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
       return;
     }
     
-    // Check if tab already exists for this path
-    const existingTab = tabs.find(t => t.path === location.pathname);
-    if (existingTab) {
-      switchTab(existingTab.id);
-      toast({
-        title: "Switched to existing tab",
-        description: `Switched to "${existingTab.title}"`
-      });
-      return;
-    }
-    
-    // Create new tab
+    // Always create new tab (allow duplicates like Chrome)
     openTab({
       id: pageInfo.id!,
       title: pageInfo.title!,
@@ -96,6 +94,24 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
       title: "Tab opened",
       description: `Opened "${pageInfo.title}" in new tab`
     });
+  };
+
+  const handleRename = (id: string, currentTitle: string) => {
+    setEditingId(id);
+    setEditTitle(currentTitle);
+  };
+
+  const saveRename = (id: string) => {
+    if (editTitle.trim()) {
+      renameTab(id, editTitle.trim());
+    }
+    setEditingId(null);
+    setEditTitle("");
+  };
+
+  const handleReload = (id: string, path: string) => {
+    reloadTab(id);
+    navigate(path);
   };
 
   return (
@@ -114,27 +130,53 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
         >
           {tabs.map((t) => {
             const isActive = t.id === activeId;
+            const isEditing = editingId === t.id;
+            const isPinned = t.pinned || t.id === "home";
+            
             return (
               <div
                 key={t.id}
-                className={`group relative flex items-center max-w-[240px] shrink-0 rounded-full border px-3 py-1 text-sm cursor-pointer transition-base
+                className={`group relative flex items-center ${isPinned ? 'max-w-[180px]' : 'max-w-[240px]'} shrink-0 rounded-full border px-3 py-1 text-sm cursor-pointer transition-base
                 ${isActive ? "bg-slate-900 text-white border-slate-900" : "bg-card text-foreground border-border hover:bg-muted"}`}
                 onClick={(e) => {
-                  // middle-click fecha
                   if ((e as any).button === 1) return;
                   go(t.id, t.path);
                 }}
                 onMouseUp={(e) => {
-                  if (e.button === 1 && t.id !== "home") {
-                    // middle click
+                  if (e.button === 1 && !isPinned) {
                     e.preventDefault();
                     closeTab(t.id);
                   }
                 }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  if (t.id !== "home") {
+                    handleRename(t.id, t.title);
+                  }
+                }}
               >
                 {t.id === "home" ? <Home size={14} className="mr-2" /> : null}
-                <span className="truncate">{t.title}</span>
-                {t.id !== "home" && (
+                {isPinned && t.id !== "home" && <Pin size={12} className="mr-2" />}
+                
+                {isEditing ? (
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    onBlur={() => saveRename(t.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") saveRename(t.id);
+                      if (e.key === "Escape") { setEditingId(null); setEditTitle(""); }
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    className="bg-transparent border-none outline-none text-inherit w-full"
+                    autoFocus
+                  />
+                ) : (
+                  <span className="truncate">{t.title}</span>
+                )}
+                
+                {!isPinned && !isEditing && (
                   <button
                     className={`ml-2 p-0.5 rounded ${isActive ? "hover:bg-white/20" : "hover:bg-muted-foreground/10"}`}
                     onClick={(e) => { e.stopPropagation(); closeTab(t.id); }}
@@ -143,24 +185,60 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
                     <X size={14} />
                   </button>
                 )}
-                <div className="relative">
-                  <button
-                    className={`ml-1 p-0.5 rounded ${isActive ? "hover:bg-white/20" : "hover:bg-muted-foreground/10"}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      const m = (e.currentTarget.nextSibling as HTMLDivElement);
-                      m?.classList.toggle("hidden");
-                    }}
-                    aria-label="More"
-                  >
-                    <MoreVertical size={14} />
-                  </button>
-                  <div className="hidden absolute top-7 right-0 w-40 rounded-md border border-border bg-popover shadow-lg z-50">
-                    <button className="w-full text-left px-3 py-2 hover:bg-muted text-sm" onClick={() => closeOthers(t.id)}>Close others</button>
-                    <button className="w-full text-left px-3 py-2 hover:bg-muted text-sm" onClick={() => closeRight(t.id)}>Close to the right</button>
-                    <button className="w-full text-left px-3 py-2 hover:bg-muted text-sm" onClick={() => reopenLastClosed()}>Reopen last closed</button>
-                  </div>
-                </div>
+                
+                {!isEditing && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        className={`ml-1 p-0.5 rounded ${isActive ? "hover:bg-white/20" : "hover:bg-muted-foreground/10"}`}
+                        onClick={(e) => e.stopPropagation()}
+                        aria-label="More options"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="5" r="1" />
+                          <circle cx="12" cy="12" r="1" />
+                          <circle cx="12" cy="19" r="1" />
+                        </svg>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem onClick={() => handleReload(t.id, t.path)}>
+                        <RotateCw size={14} className="mr-2" />
+                        Reload
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => duplicateTab(t.id)}>
+                        <Plus size={14} className="mr-2" />
+                        Duplicate
+                      </DropdownMenuItem>
+                      {t.id !== "home" && (
+                        <DropdownMenuItem onClick={() => pinTab(t.id)}>
+                          <Pin size={14} className="mr-2" />
+                          {t.pinned ? "Unpin" : "Pin"}
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => handleRename(t.id, t.title)}>
+                        Rename
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      {!isPinned && (
+                        <DropdownMenuItem onClick={() => closeTab(t.id)}>
+                          <X size={14} className="mr-2" />
+                          Close
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem onClick={() => closeOthers(t.id)}>
+                        Close Others
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => closeRight(t.id)}>
+                        Close to the Right
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => reopenLastClosed()}>
+                        Reopen Last Closed
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
               </div>
             );
           })}

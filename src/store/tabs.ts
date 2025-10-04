@@ -22,6 +22,10 @@ type TabsState = {
   switchTab: (id: string) => void;
   reopenLastClosed: () => void;
   ensureHome: (homeTitle: string, homePath: string) => void;
+  renameTab: (id: string, newTitle: string) => void;
+  duplicateTab: (id: string) => void;
+  pinTab: (id: string) => void;
+  reloadTab: (id: string) => void;
 };
 
 const HOME_ID = "home";
@@ -55,21 +59,22 @@ export const useTabsStore = create<TabsState>()(
 
       openTab: (tabInput) => {
         const { tabs } = get();
-        // se já existe pelo path/id, só ativa
-        const existing = tabs.find(t => t.id === tabInput.id || t.path === tabInput.path);
-        if (existing) {
-          set({
-            tabs: tabs.map(t => ({ ...t, isActive: t.id === existing.id })),
-            activeId: existing.id,
-          });
-          return;
+        
+        // Generate unique ID if tab with this ID already exists (allow duplicates)
+        let uniqueId = tabInput.id;
+        let suffix = 1;
+        while (tabs.find(t => t.id === uniqueId)) {
+          uniqueId = `${tabInput.id}:${suffix}`;
+          suffix++;
         }
+        
         // limite de 12 abas (Home + 11)
         const nonHome = tabs.filter(t => t.id !== HOME_ID);
         const trimmed = nonHome.length >= 11 ? tabs.filter(t => t.id === HOME_ID).concat(nonHome.slice(1)) : tabs;
 
         const newTab: Tab = {
           ...tabInput,
+          id: uniqueId,
           createdAt: Date.now(),
           isActive: true,
         };
@@ -80,8 +85,12 @@ export const useTabsStore = create<TabsState>()(
       },
 
       closeTab: (id) => {
-        if (id === HOME_ID) return;
         const { tabs, activeId } = get();
+        const tab = tabs.find(t => t.id === id);
+        
+        // Can't close Home or pinned tabs
+        if (id === HOME_ID || tab?.pinned) return;
+        
         const idx = tabs.findIndex(t => t.id === id);
         if (idx === -1) return;
 
@@ -139,6 +148,59 @@ export const useTabsStore = create<TabsState>()(
           tabs: tabs.map(t => ({ ...t, isActive: false })).concat({ ...lastClosed, isActive: true }),
           activeId: lastClosed.id,
           lastClosed: undefined,
+        });
+      },
+
+      renameTab: (id, newTitle) => {
+        const { tabs } = get();
+        set({
+          tabs: tabs.map(t => t.id === id ? { ...t, title: newTitle } : t),
+        });
+      },
+
+      duplicateTab: (id) => {
+        const { tabs } = get();
+        const tab = tabs.find(t => t.id === id);
+        if (!tab) return;
+        
+        // Generate unique ID for duplicate
+        let uniqueId = tab.id;
+        let suffix = 1;
+        while (tabs.find(t => t.id === uniqueId)) {
+          // Strip existing suffix if any
+          const baseId = tab.id.split(':')[0];
+          uniqueId = `${baseId}:${suffix}`;
+          suffix++;
+        }
+        
+        const newTab: Tab = {
+          ...tab,
+          id: uniqueId,
+          createdAt: Date.now(),
+          isActive: true,
+        };
+        
+        set({
+          tabs: tabs.map(t => ({ ...t, isActive: false })).concat(newTab),
+          activeId: newTab.id,
+        });
+      },
+
+      pinTab: (id) => {
+        if (id === HOME_ID) return; // Home is always pinned
+        const { tabs } = get();
+        set({
+          tabs: tabs.map(t => t.id === id ? { ...t, pinned: !t.pinned } : t),
+        });
+      },
+
+      reloadTab: (id) => {
+        const { tabs } = get();
+        const tab = tabs.find(t => t.id === id);
+        if (!tab) return;
+        // Trigger re-navigation by updating timestamp
+        set({
+          tabs: tabs.map(t => t.id === id ? { ...t, createdAt: Date.now() } : t),
         });
       },
     }),
