@@ -1,8 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useTheme } from "next-themes";
 
 export default function PersonalSettings() {
+  const { theme, setTheme } = useTheme();
+  
   return (
     <div className="space-y-6">
       <div>
@@ -54,22 +60,58 @@ export default function PersonalSettings() {
       <Card>
         <CardHeader>
           <CardTitle>Preferences</CardTitle>
-          <CardDescription>Language and timezone settings</CardDescription>
+          <CardDescription>Language, theme, and timezone settings</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Language</div>
-              <p className="text-sm text-muted-foreground">English</p>
+            <div className="space-y-0.5">
+              <Label htmlFor="language">Language</Label>
+              <p className="text-sm text-muted-foreground">Choose your preferred language</p>
             </div>
-            <Button variant="outline">Change</Button>
+            <Select defaultValue="en">
+              <SelectTrigger className="w-[180px]" id="language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="pt">Português</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
+          
           <div className="flex items-center justify-between">
-            <div>
-              <div className="font-medium">Timezone</div>
-              <p className="text-sm text-muted-foreground">Europe/Lisbon</p>
+            <div className="space-y-0.5">
+              <Label htmlFor="theme">Theme</Label>
+              <p className="text-sm text-muted-foreground">Toggle between light and dark mode</p>
             </div>
-            <Button variant="outline">Change</Button>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="theme-switch" className="text-sm text-muted-foreground">
+                {theme === 'dark' ? 'Dark' : 'Light'}
+              </Label>
+              <Switch
+                id="theme-switch"
+                checked={theme === 'dark'}
+                onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+              />
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="timezone">Timezone</Label>
+              <p className="text-sm text-muted-foreground">Your local timezone</p>
+            </div>
+            <Select defaultValue="europe-lisbon">
+              <SelectTrigger className="w-[180px]" id="timezone">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="europe-lisbon">Europe/Lisbon</SelectItem>
+                <SelectItem value="europe-london">Europe/London</SelectItem>
+                <SelectItem value="america-new-york">America/New York</SelectItem>
+                <SelectItem value="asia-tokyo">Asia/Tokyo</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>
