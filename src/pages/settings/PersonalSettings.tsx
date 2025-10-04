@@ -5,9 +5,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "next-themes";
+import { useProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/lib/auth";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PersonalSettings() {
   const { theme, setTheme } = useTheme();
+  const { data: profile, isLoading } = useProfile();
+  const { user } = useAuth();
   
   return (
     <div className="space-y-6">
@@ -22,14 +27,33 @@ export default function PersonalSettings() {
           <CardDescription>Your personal information</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <label className="text-sm font-medium">Full Name</label>
-            <p className="text-muted-foreground">John Doe</p>
-          </div>
-          <div>
-            <label className="text-sm font-medium">Email</label>
-            <p className="text-muted-foreground">john@example.com</p>
-          </div>
+          {isLoading ? (
+            <>
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <Skeleton className="h-5 w-48 mt-1" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <Skeleton className="h-5 w-64 mt-1" />
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <label className="text-sm font-medium">Full Name</label>
+                <p className="text-muted-foreground">
+                  {profile?.name || user?.user_metadata?.name || 'Not set'}
+                </p>
+              </div>
+              <div>
+                <label className="text-sm font-medium">Email</label>
+                <p className="text-muted-foreground">
+                  {profile?.email || user?.email || 'Not set'}
+                </p>
+              </div>
+            </>
+          )}
           <Button variant="outline">Edit Profile</Button>
         </CardContent>
       </Card>
