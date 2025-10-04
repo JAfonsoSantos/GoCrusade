@@ -23,9 +23,9 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center px-6">
-        {/* Left: Logo + Workspace */}
-        <div className="flex items-center gap-3 mr-6">
+      <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-6">
+        {/* Left: Logo + Crusade + Navigation */}
+        <div className="flex items-center gap-6">
           <button
             onClick={() => navigate('/')}
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
@@ -34,60 +34,50 @@ export function AppHeader() {
             <span className="font-bold text-lg">Crusade</span>
           </button>
           
-          {currentWorkspace && (
-            <>
-              <Separator orientation="vertical" className="h-6" />
-              <span className="text-sm text-muted-foreground">
-                {currentWorkspace.name}
-              </span>
-            </>
-          )}
+          <nav className="flex items-center gap-1">
+            <NavMenu
+              title="Pipeline"
+              href="/pipeline"
+              items={[
+                { label: 'Opportunities', href: '/pipeline' },
+                { label: 'Advertisers', href: '/pipeline/advertisers' },
+                { label: 'Brands', href: '/pipeline/brands' },
+                { label: 'Contacts', href: '/pipeline/contacts' },
+              ]}
+            />
+            
+            <NavMenu
+              title="Campaigns"
+              href="/campaigns"
+              items={[
+                { label: 'Timeline', href: '/campaigns' },
+                { label: 'List', href: '/campaigns/list' },
+                { label: 'Creatives', href: '/campaigns/creatives' },
+              ]}
+            />
+            
+            <NavMenu
+              title="Inventory"
+              href="/inventory"
+              items={[
+                { label: 'Properties', href: '/inventory/properties' },
+                { label: 'Ad Units', href: '/inventory/ad-units' },
+              ]}
+            />
+            
+            <NavMenu
+              title="Insights"
+              href="/insights"
+              items={[
+                { label: 'Reports', href: '/insights/reports' },
+                { label: 'Forecast', href: '/insights/forecast' },
+              ]}
+            />
+          </nav>
         </div>
 
-        {/* Center: Navigation */}
-        <nav className="flex items-center gap-1">
-          <NavMenu
-            title="Pipeline"
-            href="/pipeline"
-            items={[
-              { label: 'Opportunities', href: '/pipeline' },
-              { label: 'Advertisers', href: '/pipeline/advertisers' },
-              { label: 'Brands', href: '/pipeline/brands' },
-              { label: 'Contacts', href: '/pipeline/contacts' },
-            ]}
-          />
-          
-          <NavMenu
-            title="Campaigns"
-            href="/campaigns"
-            items={[
-              { label: 'Timeline', href: '/campaigns' },
-              { label: 'List', href: '/campaigns/list' },
-              { label: 'Creatives', href: '/campaigns/creatives' },
-            ]}
-          />
-          
-          <NavMenu
-            title="Inventory"
-            href="/inventory"
-            items={[
-              { label: 'Properties', href: '/inventory/properties' },
-              { label: 'Ad Units', href: '/inventory/ad-units' },
-            ]}
-          />
-          
-          <NavMenu
-            title="Insights"
-            href="/insights"
-            items={[
-              { label: 'Reports', href: '/insights/reports' },
-              { label: 'Forecast', href: '/insights/forecast' },
-            ]}
-          />
-        </nav>
-
         {/* Right: Search, Notifications, User */}
-        <div className="ml-auto flex items-center gap-2">
+        <div className="flex items-center gap-2">
           <Button
             variant="ghost"
             size="sm"
