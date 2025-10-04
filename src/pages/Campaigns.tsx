@@ -11,6 +11,7 @@ import { FlightDrawer } from "@/features/flights/FlightDrawer";
 import { Flight } from "@/lib/types";
 import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Campaigns() {
   const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
@@ -19,6 +20,7 @@ export default function Campaigns() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [filterAdvertiser, setFilterAdvertiser] = useState<string>("all");
+  const [isLoading, setIsLoading] = useState(true);
 
   // Auto-open drawer from URL query param
   useEffect(() => {
@@ -31,6 +33,12 @@ export default function Campaigns() {
       }
     }
   }, [searchParams, flights]);
+
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Filter campaigns and flights
   const filteredCampaigns = filterAdvertiser === "all"
@@ -183,7 +191,14 @@ export default function Campaigns() {
           </div>
         </CardHeader>
         <CardContent>
-          {tasks.length > 0 ? (
+          {isLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : tasks.length > 0 ? (
             <div className="overflow-x-auto">
               <Gantt
                 tasks={tasks}

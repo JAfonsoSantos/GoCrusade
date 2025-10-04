@@ -40,13 +40,25 @@ export function CommandPalette() {
 
   useEffect(() => {
     let gPressed = false;
+    let nPressed = false;
     let gTimeout: NodeJS.Timeout;
+    let nTimeout: NodeJS.Timeout;
 
     const down = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA';
+
       // Command palette
       if (e.key === 'k' && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         setOpen((prev) => !prev);
+        return;
+      }
+
+      // / to focus search
+      if (e.key === '/' && !isInput && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        e.preventDefault();
+        setOpen(true);
         return;
       }
 
@@ -57,8 +69,11 @@ export function CommandPalette() {
         return;
       }
 
+      // Don't process shortcuts in input fields
+      if (isInput) return;
+
       // G navigation
-      if (e.key === 'g' && !gPressed) {
+      if (e.key === 'g' && !gPressed && !e.metaKey && !e.ctrlKey) {
         gPressed = true;
         gTimeout = setTimeout(() => {
           gPressed = false;
@@ -85,6 +100,31 @@ export function CommandPalette() {
             navigate('/integrations');
             break;
         }
+        return;
+      }
+
+      // N for new actions
+      if (e.key === 'n' && !nPressed && !e.metaKey && !e.ctrlKey) {
+        nPressed = true;
+        nTimeout = setTimeout(() => {
+          nPressed = false;
+        }, 1000);
+        return;
+      }
+
+      if (nPressed) {
+        e.preventDefault();
+        nPressed = false;
+        clearTimeout(nTimeout);
+
+        switch (e.key) {
+          case 'c':
+            navigate('/campaigns/new');
+            break;
+          case 'o':
+            setNewOppOpen(true);
+            break;
+        }
       }
     };
 
@@ -92,6 +132,7 @@ export function CommandPalette() {
     return () => {
       document.removeEventListener('keydown', down);
       clearTimeout(gTimeout);
+      clearTimeout(nTimeout);
     };
   }, [navigate]);
 
@@ -137,14 +178,17 @@ export function CommandPalette() {
           <CommandItem onSelect={() => handleSelect(() => navigate('/'))}>
             <Home className="mr-2 h-4 w-4" />
             <span>Dashboard</span>
+            <span className="ml-auto text-xs text-muted-foreground">G then H</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelect(() => navigate('/pipeline'))}>
             <Kanban className="mr-2 h-4 w-4" />
             <span>Pipeline</span>
+            <span className="ml-auto text-xs text-muted-foreground">G then P</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelect(() => navigate('/campaigns'))}>
             <Megaphone className="mr-2 h-4 w-4" />
             <span>Campaigns</span>
+            <span className="ml-auto text-xs text-muted-foreground">G then C</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelect(() => navigate('/inventory'))}>
             <Package className="mr-2 h-4 w-4" />

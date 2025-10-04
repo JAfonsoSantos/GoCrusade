@@ -46,22 +46,36 @@ export default function NewCampaign() {
   const [selectedOpportunities, setSelectedOpportunities] = useState<string[]>([]);
 
   const handleNext = () => {
-    if (step === 1 && (!campaignData.name || !campaignData.advertiserId || !campaignData.propertyId)) {
-      toast({
-        title: "Missing fields",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
+    // Step 1: Validate basics
+    if (step === 1) {
+      if (!campaignData.name?.trim()) {
+        toast({
+          title: "Missing campaign name",
+          description: "Please enter a campaign name",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!campaignData.advertiserId) {
+        toast({
+          title: "Missing advertiser",
+          description: "Please select an advertiser",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!campaignData.propertyId) {
+        toast({
+          title: "Missing property",
+          description: "Please select a property",
+          variant: "destructive",
+        });
+        return;
+      }
     }
-    if (step === 3 && flights.length === 0) {
-      toast({
-        title: "No flights",
-        description: "Add at least one flight to continue",
-        variant: "destructive",
-      });
-      return;
-    }
+    
+    // Step 3: Flights are optional - wizard will create a default flight if none added
+    
     setStep(step + 1);
   };
 
@@ -70,34 +84,54 @@ export default function NewCampaign() {
   const handleCreate = () => {
     const campaignId = `camp-${Date.now()}`;
     
+    // Create campaign in draft status
     addCampaign({
       id: campaignId,
       business_id: "demo-business-1",
       advertiser_id: campaignData.advertiserId,
       property_id: campaignData.propertyId,
       name: campaignData.name,
-      status: campaignData.status,
+      status: "draft",
       budget: campaignData.budget ? parseFloat(campaignData.budget) : undefined,
       owner: campaignData.owner,
     });
 
-    flights.forEach((flight, idx) => {
+    // Create at least one flight
+    if (flights.length === 0) {
       addFlight({
-        id: `flight-${Date.now()}-${idx}`,
+        id: `flight-${Date.now()}-0`,
         campaign_id: campaignId,
-        ad_unit_id: flight.ad_unit_id || adUnits[0]?.id || "",
-        name: flight.name || `Flight ${idx + 1}`,
-        start_at: flight.start_at,
-        end_at: flight.end_at,
-        always_on: flight.always_on || false,
-        pricing_model: flight.pricing_model || "CPM",
-        rate: flight.rate || 0,
-        goal_type: flight.goal_type || "IMPRESSIONS",
-        goal_amount: flight.goal_amount,
-        priority: flight.priority || "standard",
-        timezone: flight.timezone || "Europe/Lisbon",
+        ad_unit_id: adUnits[0]?.id || "",
+        name: "Flight 1",
+        start_at: new Date().toISOString(),
+        end_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        always_on: false,
+        pricing_model: "CPM",
+        rate: 5.0,
+        goal_type: "IMPRESSIONS",
+        goal_amount: 100000,
+        priority: "standard",
+        timezone: "Europe/Lisbon",
       });
-    });
+    } else {
+      flights.forEach((flight, idx) => {
+        addFlight({
+          id: `flight-${Date.now()}-${idx}`,
+          campaign_id: campaignId,
+          ad_unit_id: flight.ad_unit_id || adUnits[0]?.id || "",
+          name: flight.name || `Flight ${idx + 1}`,
+          start_at: flight.start_at,
+          end_at: flight.end_at,
+          always_on: flight.always_on || false,
+          pricing_model: flight.pricing_model || "CPM",
+          rate: flight.rate || 0,
+          goal_type: flight.goal_type || "IMPRESSIONS",
+          goal_amount: flight.goal_amount,
+          priority: flight.priority || "standard",
+          timezone: flight.timezone || "Europe/Lisbon",
+        });
+      });
+    }
 
     creatives.forEach((creative, idx) => {
       addCreative({
@@ -113,7 +147,7 @@ export default function NewCampaign() {
 
     toast({
       title: "Campaign created",
-      description: `${campaignData.name} has been created successfully`,
+      description: `${campaignData.name} has been created as a draft with ${flights.length || 1} flight(s)`,
     });
 
     navigate("/campaigns");

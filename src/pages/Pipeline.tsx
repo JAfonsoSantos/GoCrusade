@@ -1,5 +1,5 @@
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ExternalLink, Plus, Link as LinkIcon } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useDemoStore } from "@/demo/DemoProvider";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   DndContext, 
   DragEndEvent, 
@@ -161,6 +162,7 @@ export default function Pipeline() {
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string | null>(null);
   const [newOppModalOpen, setNewOppModalOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
   const sensors = useSensors(
@@ -171,6 +173,12 @@ export default function Pipeline() {
     })
   );
 
+  // Simulate loading
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id as string);
   };
@@ -179,45 +187,27 @@ export default function Pipeline() {
     const { active, over } = event;
     setActiveId(null);
 
-    if (!over) {
-      toast({
-        title: "Couldn't move",
-        description: "Try again.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!over) return;
 
     const oppId = active.id as string;
     const opp = opportunities.find((o) => o.id === oppId);
     
-    if (!opp) {
-      toast({
-        title: "Couldn't move",
-        description: "Try again.",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!opp) return;
 
-    // Determine destination containerId
+    // Determine destination stage
     let destinationStage: string | undefined;
     
     if (over.data.current?.type === 'container') {
-      // Dropped over a container
+      // Dropped over a container (column)
       destinationStage = over.data.current.containerId as string;
     } else if (over.data.current?.type === 'opportunity') {
-      // Dropped over another card - use its container
+      // Dropped over another card - use that card's container (column)
       destinationStage = over.data.current.containerId as string;
     }
 
+    // Fallback to source stage if no valid destination
     if (!destinationStage || !mockStages.includes(destinationStage)) {
-      toast({
-        title: "Couldn't move",
-        description: "Try again.",
-        variant: "destructive",
-      });
-      return;
+      destinationStage = opp.stage;
     }
 
     // Only update if stage actually changed
@@ -262,18 +252,37 @@ export default function Pipeline() {
         </TabsList>
 
         <TabsContent value="kanban" className="space-y-4">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6 mb-2">
-            {mockStages.map((stage) => (
-              <Card key={stage}>
-                <CardContent className="p-3">
-                  <p className="text-xs text-muted-foreground">{stage} Total</p>
-                  <p className="text-lg font-bold">€{getStageTotal(stage).toLocaleString()}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6 mb-2">
+                {mockStages.map((stage) => (
+                  <Skeleton key={stage} className="h-20" />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {mockStages.map((stage) => (
+                  <div key={stage} className="space-y-2">
+                    <Skeleton className="h-6 w-24" />
+                    <Skeleton className="h-32" />
+                    <Skeleton className="h-32" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-3 lg:grid-cols-6 mb-2">
+                {mockStages.map((stage) => (
+                  <Card key={stage}>
+                    <CardContent className="p-3">
+                      <p className="text-xs text-muted-foreground">{stage} Total</p>
+                      <p className="text-lg font-bold">€{getStageTotal(stage).toLocaleString()}</p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
 
-          <DndContext 
+              <DndContext
             sensors={sensors} 
             collisionDetection={closestCorners} 
             onDragStart={handleDragStart}
@@ -322,6 +331,8 @@ export default function Pipeline() {
               })() : null}
             </DragOverlay>
           </DndContext>
+            </>
+          )}
         </TabsContent>
 
         <TabsContent value="list">
