@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2, ExternalLink } from "lucide-react";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { openAdvertiserTab } from "@/lib/openInTab";
 import {
   Sheet,
   SheetContent,
@@ -41,6 +43,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Advertisers() {
+  const navigate = useNavigate();
   const { advertisers, opportunities, brands, addAdvertiser, updateAdvertiser, business } = useDemoStore();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -170,7 +173,14 @@ export default function Advertisers() {
                   const brandCount = brands.filter((b) => b.advertiser_id === advertiser.id).length;
 
                   return (
-                    <TableRow key={advertiser.id}>
+                    <TableRow 
+                      key={advertiser.id}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => {
+                        openAdvertiserTab(advertiser.id, advertiser.name);
+                        navigate(`/pipeline/advertisers/${advertiser.id}`);
+                      }}
+                    >
                       <TableCell className="font-medium">{advertiser.name}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {advertiser.parent_name || "—"}
@@ -184,7 +194,7 @@ export default function Advertisers() {
                           </Button>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">

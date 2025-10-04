@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2, Mail, ExternalLink } from "lucide-react";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { openContactTab } from "@/lib/openInTab";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Contacts() {
+  const navigate = useNavigate();
   const { contacts, advertisers, brands, addContact, updateContact, business } = useDemoStore();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -210,7 +213,14 @@ export default function Contacts() {
                   const advertiser = advertisers.find((a) => a.id === contact.advertiser_id);
 
                   return (
-                    <TableRow key={contact.id}>
+                    <TableRow 
+                      key={contact.id}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => {
+                        openContactTab(contact.id, contact.name);
+                        navigate(`/pipeline/contacts/${contact.id}`);
+                      }}
+                    >
                       <TableCell className="font-medium">{contact.name}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -231,7 +241,7 @@ export default function Contacts() {
                           </Button>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">

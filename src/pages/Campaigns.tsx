@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus, List } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
@@ -13,6 +13,7 @@ import { Flight, Campaign } from "@/lib/types";
 import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { openCampaignTab } from "@/lib/openInTab";
 
 const ROW_HEIGHT = 44;
 const LIST_WIDTH = "240px";
@@ -20,6 +21,7 @@ const COL_WIDTH = 64;
 const FONT_SIZE = "12";
 
 export default function Campaigns() {
+  const navigate = useNavigate();
   const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
@@ -146,16 +148,16 @@ export default function Campaigns() {
     });
   };
 
-  // Handle bar clicks - flight opens drawer, campaign opens campaign drawer
+  // Handle bar clicks - flight opens drawer, campaign opens in new tab
   const handleTaskSelect = (task: Task, isSelected: boolean) => {
     if (!task) return;
     
     if (task.type === "project") {
-      // Clicking campaign bar opens CampaignDrawer
+      // Clicking campaign bar opens campaign in new tab
       const campaign = campaigns.find((c) => c.id === task.id);
       if (campaign) {
-        setSelectedCampaign(campaign);
-        setCampaignDrawerOpen(true);
+        openCampaignTab(campaign.id, campaign.name);
+        navigate(`/campaigns/${campaign.id}`);
       }
       return;
     }

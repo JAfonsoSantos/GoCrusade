@@ -5,7 +5,9 @@ import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2 } from "lucide-react";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { openBrandTab } from "@/lib/openInTab";
 import {
   Sheet,
   SheetContent,
@@ -48,6 +50,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export default function Brands() {
+  const navigate = useNavigate();
   const { brands, advertisers, addBrand, updateBrand, business } = useDemoStore();
   const [search, setSearch] = useState("");
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -180,12 +183,19 @@ export default function Brands() {
                   const advertiser = advertisers.find((a) => a.id === brand.advertiser_id);
 
                   return (
-                    <TableRow key={brand.id}>
+                    <TableRow 
+                      key={brand.id}
+                      className="cursor-pointer hover:bg-muted"
+                      onClick={() => {
+                        openBrandTab(brand.id, brand.name);
+                        navigate(`/pipeline/brands/${brand.id}`);
+                      }}
+                    >
                       <TableCell className="font-medium">{brand.name}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {advertiser?.name || "Unknown"}
                       </TableCell>
-                      <TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="sm">

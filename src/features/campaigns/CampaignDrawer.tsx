@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useDemoStore } from "@/demo/DemoProvider";
 import { Campaign } from "@/lib/types";
-import { Calendar, DollarSign, Target, BarChart3 } from "lucide-react";
+import { Calendar, DollarSign, Target, BarChart3, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
+import { openCampaignTab } from "@/lib/openInTab";
 
 interface CampaignDrawerProps {
   campaign: Campaign | null;
@@ -16,6 +18,7 @@ interface CampaignDrawerProps {
 }
 
 export function CampaignDrawer({ campaign, open, onOpenChange }: CampaignDrawerProps) {
+  const navigate = useNavigate();
   const { flights, advertisers, properties, deliveryData } = useDemoStore();
   
   if (!campaign) return null;
@@ -196,7 +199,18 @@ export function CampaignDrawer({ campaign, open, onOpenChange }: CampaignDrawerP
           </Tabs>
         </div>
 
-        <div className="border-t p-6 flex justify-end gap-2">
+        <div className="border-t p-6 flex justify-between gap-2">
+          <Button 
+            variant="outline"
+            onClick={() => {
+              openCampaignTab(campaign.id, campaign.name);
+              navigate(`/campaigns/${campaign.id}`);
+              onOpenChange(false);
+            }}
+          >
+            <ExternalLink className="mr-2 h-4 w-4" />
+            View Full Details
+          </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>

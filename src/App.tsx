@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandPalette } from "@/components/CommandPalette";
+import { useTabsStore } from "@/store/tabs";
 import Home from "./pages/Home";
 import Pipeline from "./pages/Pipeline";
 import Campaigns from "./pages/Campaigns";
@@ -16,6 +19,9 @@ import Settings from "./pages/Settings";
 import Advertisers from "./pages/pipeline/Advertisers";
 import Brands from "./pages/pipeline/Brands";
 import Contacts from "./pages/pipeline/Contacts";
+import AdvertiserDetail from "./pages/pipeline/AdvertiserDetail";
+import BrandDetail from "./pages/pipeline/BrandDetail";
+import ContactDetail from "./pages/pipeline/ContactDetail";
 import CampaignsList from "./pages/campaigns/CampaignsList";
 import CampaignDetail from "./pages/campaigns/CampaignDetail";
 import NewCampaign from "./pages/campaigns/NewCampaign";
@@ -36,6 +42,22 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function TabSync() {
+  const location = useLocation();
+  const { tabs, switchTab } = useTabsStore();
+  
+  useEffect(() => {
+    const matchingTab = tabs.find(t => t.path === location.pathname);
+    if (matchingTab) {
+      switchTab(matchingTab.id);
+    } else {
+      switchTab("home");
+    }
+  }, [location.pathname, tabs, switchTab]);
+  
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
@@ -43,18 +65,23 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <TabSync />
           <Routes>
             <Route path="/" element={<AppLayout><Home /></AppLayout>} />
             
             {/* Pipeline routes */}
             <Route path="/pipeline" element={<AppLayout><Pipeline /></AppLayout>} />
             <Route path="/pipeline/advertisers" element={<AppLayout><Advertisers /></AppLayout>} />
+            <Route path="/pipeline/advertisers/:id" element={<AppLayout><AdvertiserDetail /></AppLayout>} />
             <Route path="/pipeline/brands" element={<AppLayout><Brands /></AppLayout>} />
+            <Route path="/pipeline/brands/:id" element={<AppLayout><BrandDetail /></AppLayout>} />
             <Route path="/pipeline/contacts" element={<AppLayout><Contacts /></AppLayout>} />
+            <Route path="/pipeline/contacts/:id" element={<AppLayout><ContactDetail /></AppLayout>} />
             
             {/* Campaign routes */}
             <Route path="/campaigns" element={<AppLayout><Campaigns /></AppLayout>} />
             <Route path="/campaigns/list" element={<AppLayout><CampaignsList /></AppLayout>} />
+            <Route path="/campaigns/:id" element={<AppLayout><CampaignDetail /></AppLayout>} />
             <Route path="/campaigns/creatives" element={<AppLayout><Creatives /></AppLayout>} />
             <Route path="/campaigns/new" element={<AppLayout><NewCampaign /></AppLayout>} />
             
