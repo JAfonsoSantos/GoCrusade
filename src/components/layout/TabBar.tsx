@@ -1,7 +1,10 @@
 import { useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTabsStore } from "@/store/tabs";
-import { X, MoreVertical, Home, ChevronLeft, ChevronRight } from "lucide-react";
+import { useDemoStore } from "@/demo/DemoProvider";
+import { X, MoreVertical, Home, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { getPageInfo } from "@/lib/getPageInfo";
+import { toast } from "@/hooks/use-toast";
 
 type Props = {
   homeTitle?: string;    // default: "Home"
@@ -10,7 +13,9 @@ type Props = {
 
 export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
   const navigate = useNavigate();
-  const { tabs, activeId, ensureHome, closeTab, switchTab, closeOthers, closeRight, reopenLastClosed } = useTabsStore();
+  const location = useLocation();
+  const { tabs, activeId, ensureHome, closeTab, switchTab, closeOthers, closeRight, reopenLastClosed, openTab } = useTabsStore();
+  const demoStore = useDemoStore();
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,6 +60,42 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
       // If already on this path, just switch the tab
       switchTab(id);
     }
+  };
+
+  const handleAddTab = () => {
+    const pageInfo = getPageInfo(location.pathname, demoStore);
+    
+    if (!pageInfo.canCreateTab) {
+      toast({
+        title: "Cannot open tab",
+        description: "This page cannot be opened in a tab",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Check if tab already exists for this path
+    const existingTab = tabs.find(t => t.path === location.pathname);
+    if (existingTab) {
+      switchTab(existingTab.id);
+      toast({
+        title: "Switched to existing tab",
+        description: `Switched to "${existingTab.title}"`
+      });
+      return;
+    }
+    
+    // Create new tab
+    openTab({
+      id: pageInfo.id!,
+      title: pageInfo.title!,
+      path: location.pathname,
+      icon: pageInfo.icon
+    });
+    toast({
+      title: "Tab opened",
+      description: `Opened "${pageInfo.title}" in new tab`
+    });
   };
 
   return (
@@ -123,6 +164,14 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
               </div>
             );
           })}
+          <button
+            className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full border border-border hover:bg-muted cursor-pointer transition-base sticky right-0 ml-2 bg-background"
+            onClick={handleAddTab}
+            aria-label="Open current page in new tab"
+            title="Open current page in new tab"
+          >
+            <Plus size={14} />
+          </button>
         </div>
         <button
           className="p-1 rounded hover:bg-muted transition-base"
