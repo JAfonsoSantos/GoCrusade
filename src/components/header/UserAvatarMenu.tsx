@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { User, Settings, Building2, Plug, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/lib/auth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,17 +19,17 @@ import { getInitials, getAvatarColor } from '@/utils/user';
 
 export function UserAvatarMenu() {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const [switchModalOpen, setSwitchModalOpen] = useState(false);
   const [showSwitchPill, setShowSwitchPill] = useState(false);
   const currentWorkspace = useWorkspaceStore(state => state.current);
   
-  // Mock user data
-  const userName = 'John Doe';
-  const userEmail = 'john.doe@example.com';
+  // Use auth user data
+  const userName = user?.user_metadata?.name || user?.email || 'User';
+  const userEmail = user?.email || '';
   
   const handleLogout = () => {
-    // TODO: Implement actual logout logic
-    console.log('Logout clicked');
+    signOut();
   };
 
   return (

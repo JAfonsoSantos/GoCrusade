@@ -9,6 +9,8 @@ import { ThemeProvider } from "next-themes";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { CommandPalette } from "@/components/CommandPalette";
 import { useTabsStore } from "@/store/tabs";
+import { AuthProvider, ProtectedRoute } from "@/lib/auth";
+import Auth from "./pages/Auth";
 import Home from "./pages/Home";
 import Pipeline from "./pages/Pipeline";
 import Campaigns from "./pages/Campaigns";
@@ -74,49 +76,55 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <TabSync />
-          <Routes>
-            <Route path="/" element={<AppLayout><Home /></AppLayout>} />
+          <AuthProvider>
+            <TabSync />
+            <Routes>
+              {/* Public route */}
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Protected routes */}
+              <Route path="/" element={<ProtectedRoute><AppLayout><Home /></AppLayout></ProtectedRoute>} />
             
-            {/* Pipeline routes */}
-            <Route path="/pipeline" element={<AppLayout><Pipeline /></AppLayout>} />
-            <Route path="/pipeline/advertisers" element={<AppLayout><Advertisers /></AppLayout>} />
-            <Route path="/pipeline/advertisers/:id" element={<AppLayout><AdvertiserDetail /></AppLayout>} />
-            <Route path="/pipeline/brands" element={<AppLayout><Brands /></AppLayout>} />
-            <Route path="/pipeline/brands/:id" element={<AppLayout><BrandDetail /></AppLayout>} />
-            <Route path="/pipeline/contacts" element={<AppLayout><Contacts /></AppLayout>} />
-            <Route path="/pipeline/contacts/:id" element={<AppLayout><ContactDetail /></AppLayout>} />
+              {/* Pipeline routes */}
+              <Route path="/pipeline" element={<ProtectedRoute><AppLayout><Pipeline /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/advertisers" element={<ProtectedRoute><AppLayout><Advertisers /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/advertisers/:id" element={<ProtectedRoute><AppLayout><AdvertiserDetail /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/brands" element={<ProtectedRoute><AppLayout><Brands /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/brands/:id" element={<ProtectedRoute><AppLayout><BrandDetail /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/contacts" element={<ProtectedRoute><AppLayout><Contacts /></AppLayout></ProtectedRoute>} />
+              <Route path="/pipeline/contacts/:id" element={<ProtectedRoute><AppLayout><ContactDetail /></AppLayout></ProtectedRoute>} />
             
-            {/* Campaign routes */}
-            <Route path="/campaigns" element={<AppLayout><Campaigns /></AppLayout>} />
-            <Route path="/campaigns/list" element={<AppLayout><CampaignsList /></AppLayout>} />
-            <Route path="/campaigns/:id" element={<AppLayout><CampaignDetail /></AppLayout>} />
-            <Route path="/campaigns/creatives" element={<AppLayout><Creatives /></AppLayout>} />
-            <Route path="/campaigns/new" element={<AppLayout><NewCampaign /></AppLayout>} />
+              {/* Campaign routes */}
+              <Route path="/campaigns" element={<ProtectedRoute><AppLayout><Campaigns /></AppLayout></ProtectedRoute>} />
+              <Route path="/campaigns/list" element={<ProtectedRoute><AppLayout><CampaignsList /></AppLayout></ProtectedRoute>} />
+              <Route path="/campaigns/:id" element={<ProtectedRoute><AppLayout><CampaignDetail /></AppLayout></ProtectedRoute>} />
+              <Route path="/campaigns/creatives" element={<ProtectedRoute><AppLayout><Creatives /></AppLayout></ProtectedRoute>} />
+              <Route path="/campaigns/new" element={<ProtectedRoute><AppLayout><NewCampaign /></AppLayout></ProtectedRoute>} />
             
-            {/* Inventory routes */}
-            <Route path="/inventory" element={<AppLayout><Inventory /></AppLayout>} />
-            <Route path="/inventory/properties" element={<AppLayout><Properties /></AppLayout>} />
-            <Route path="/inventory/ad-units" element={<AppLayout><AdUnits /></AppLayout>} />
+              {/* Inventory routes */}
+              <Route path="/inventory" element={<ProtectedRoute><AppLayout><Inventory /></AppLayout></ProtectedRoute>} />
+              <Route path="/inventory/properties" element={<ProtectedRoute><AppLayout><Properties /></AppLayout></ProtectedRoute>} />
+              <Route path="/inventory/ad-units" element={<ProtectedRoute><AppLayout><AdUnits /></AppLayout></ProtectedRoute>} />
             
-            {/* Insights routes */}
-            <Route path="/insights" element={<AppLayout><Insights /></AppLayout>} />
-            <Route path="/insights/reports" element={<AppLayout><Reports /></AppLayout>} />
-            <Route path="/insights/forecast" element={<AppLayout><Forecast /></AppLayout>} />
+              {/* Insights routes */}
+              <Route path="/insights" element={<ProtectedRoute><AppLayout><Insights /></AppLayout></ProtectedRoute>} />
+              <Route path="/insights/reports" element={<ProtectedRoute><AppLayout><Reports /></AppLayout></ProtectedRoute>} />
+              <Route path="/insights/forecast" element={<ProtectedRoute><AppLayout><Forecast /></AppLayout></ProtectedRoute>} />
             
-            {/* Integrations routes */}
-            <Route path="/integrations" element={<AppLayout><Integrations /></AppLayout>} />
-            <Route path="/integrations/salesforce" element={<AppLayout><SalesforcePage /></AppLayout>} />
-            <Route path="/integrations/kevel" element={<AppLayout><KevelPage /></AppLayout>} />
+              {/* Integrations routes */}
+              <Route path="/integrations" element={<ProtectedRoute><AppLayout><Integrations /></AppLayout></ProtectedRoute>} />
+              <Route path="/integrations/salesforce" element={<ProtectedRoute><AppLayout><SalesforcePage /></AppLayout></ProtectedRoute>} />
+              <Route path="/integrations/kevel" element={<ProtectedRoute><AppLayout><KevelPage /></AppLayout></ProtectedRoute>} />
             
-            {/* Settings routes */}
-            <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
-            <Route path="/settings/personal" element={<AppLayout><PersonalSettings /></AppLayout>} />
-            <Route path="/settings/business" element={<AppLayout><BusinessSettings /></AppLayout>} />
-            <Route path="/settings/system" element={<AppLayout><SystemSettings /></AppLayout>} />
-            
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              {/* Settings routes */}
+              <Route path="/settings" element={<ProtectedRoute><AppLayout><Settings /></AppLayout></ProtectedRoute>} />
+              <Route path="/settings/personal" element={<ProtectedRoute><AppLayout><PersonalSettings /></AppLayout></ProtectedRoute>} />
+              <Route path="/settings/business" element={<ProtectedRoute><AppLayout><BusinessSettings /></AppLayout></ProtectedRoute>} />
+              <Route path="/settings/system" element={<ProtectedRoute><AppLayout><SystemSettings /></AppLayout></ProtectedRoute>} />
+              
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
