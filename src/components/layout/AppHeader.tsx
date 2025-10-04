@@ -23,7 +23,7 @@ export function AppHeader() {
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 max-w-screen-2xl items-center justify-between px-6">
+      <div className="flex h-14 w-full items-center justify-between px-6">
         {/* Left: Logo + Crusade + Navigation */}
         <div className="flex items-center gap-6">
           <button
