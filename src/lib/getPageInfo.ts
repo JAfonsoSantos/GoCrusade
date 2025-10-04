@@ -75,23 +75,7 @@ export function getPageInfo(pathname: string, store: DemoStore): PageInfo {
     }
   }
   
-  // List pages - don't create tabs
-  const listPages = [
-    '/campaigns/list',
-    '/campaigns',
-    '/pipeline',
-    '/pipeline/advertisers',
-    '/pipeline/brands',
-    '/pipeline/contacts',
-    '/inventory',
-    '/inventory/properties',
-    '/inventory/ad-units'
-  ];
-  if (listPages.includes(pathname)) {
-    return { canCreateTab: false };
-  }
-  
-  // Generic pages (integrations, settings, insights, etc.)
+  // Generic pages (integrations, settings, insights, campaigns list, etc.)
   const segments = pathname.split('/').filter(Boolean);
   if (segments.length > 0) {
     const pageName = segments[segments.length - 1]
