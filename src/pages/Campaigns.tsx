@@ -74,8 +74,8 @@ export default function Campaigns() {
       progress: 0,
       hideChildren: false,
       styles: {
-        backgroundColor: "hsl(var(--primary))",
-        backgroundSelectedColor: "hsl(var(--primary))",
+        backgroundColor: "#93c5fd",
+        backgroundSelectedColor: "#60a5fa",
       },
     });
 
@@ -111,8 +111,8 @@ export default function Campaigns() {
     });
   });
 
-  const handleTaskClick = (task: Task) => {
-    if (task.type === "task") {
+  const handleTaskSelect = (task: Task, isSelected: boolean) => {
+    if (task.type === "task" && task.id.startsWith("flt_")) {
       const flight = flights.find((f) => f.id === task.id);
       if (flight) {
         setSelectedFlight(flight);
@@ -120,6 +120,7 @@ export default function Campaigns() {
         setSearchParams({ flight: flight.id });
       }
     }
+    // Project tasks do nothing or could toggle collapse
   };
 
   const handleDrawerClose = (open: boolean) => {
@@ -203,9 +204,12 @@ export default function Campaigns() {
               <Gantt
                 tasks={tasks}
                 viewMode={viewMode}
-                onClick={handleTaskClick}
-                columnWidth={viewMode === ViewMode.Month ? 60 : 40}
-                listCellWidth="200px"
+                onSelect={handleTaskSelect}
+                columnWidth={64}
+                listCellWidth="240px"
+                rowHeight={44}
+                barCornerRadius={3}
+                fontSize="12"
                 ganttHeight={400}
               />
             </div>

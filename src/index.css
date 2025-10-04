@@ -172,4 +172,10 @@
   .transition-smooth {
     transition: var(--transition-smooth);
   }
+
+  .gantt-pacing-overlay {
+    pointer-events: none;
+    position: relative;
+    z-index: 0;
+  }
 }
