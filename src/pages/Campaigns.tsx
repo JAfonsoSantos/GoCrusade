@@ -159,7 +159,7 @@ export default function Campaigns() {
 
   return (
     <ErrorBoundary fallbackMessage="Unable to load campaigns timeline. Please try reloading the page.">
-    <div className="space-y-6">
+    <div className="space-y-6 ganttPageRoot">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Campaigns</h1>
@@ -227,7 +227,7 @@ export default function Campaigns() {
               <Skeleton className="h-12 w-full" />
             </div>
           ) : tasks.length > 0 ? (
-            <div className="gantt-container">
+            <div className="ganttScrollContainer">
               <div className="gantt-wrapper">
                 <Gantt
                   tasks={tasks}

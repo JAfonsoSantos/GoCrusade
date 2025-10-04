@@ -1,0 +1,76 @@
+/* Gantt Chart Scroll Isolation - Only chart area scrolls horizontally */
+
+/* Page root prevents body-level scroll */
+.ganttPageRoot { 
+  overflow-x: hidden; 
+}
+
+/* Scroll container isolates horizontal overflow to chart area only */
+.ganttScrollContainer {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  border-radius: 8px;
+  position: relative;
+}
+
+/* Gantt wrapper ensures proper layout */
+.ganttScrollContainer .gantt-wrapper {
+  min-width: max-content;
+  width: fit-content;
+}
+
+/* Table structure for better control */
+.ganttTable {
+  min-width: 1200px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+/* Sticky header stays visible during scroll */
+.ganttStickyHead {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Sticky name column stays visible during horizontal scroll */
+.ganttNameCol {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: hsl(var(--background));
+  border-right: 1px solid hsl(var(--border));
+}
+
+/* Grid cells for week/month columns */
+.ganttGridCell { 
+  width: 64px; 
+}
+
+/* Pacing overlays don't block clicks */
+.gantt-pacing-overlay {
+  pointer-events: none;
+  position: relative;
+  z-index: 0;
+}
+
+/* Consistent row heights */
+.gantt-row {
+  height: 44px;
+}
+
+/* Prevent internal elements from causing page scroll */
+.ganttScrollContainer :where(svg, canvas, div) {
+  max-width: none;
+}
+
+/* Dark mode support for sticky elements */
+.dark .ganttStickyHead,
+.dark .ganttNameCol {
+  background: hsl(var(--background));
+}
