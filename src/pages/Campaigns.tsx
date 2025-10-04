@@ -8,7 +8,8 @@ import { useDemoStore } from "@/demo/DemoProvider";
 import { Gantt, Task, ViewMode } from "gantt-task-react";
 import "gantt-task-react/dist/index.css";
 import { FlightDrawer } from "@/features/flights/FlightDrawer";
-import { Flight } from "@/lib/types";
+import { CampaignDrawer } from "@/features/campaigns/CampaignDrawer";
+import { Flight, Campaign } from "@/lib/types";
 import { calculatePacing, getPacingColor } from "@/lib/pacing";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,22 +23,30 @@ export default function Campaigns() {
   const { campaigns, flights, advertisers, deliveryData } = useDemoStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
+  const [flightDrawerOpen, setFlightDrawerOpen] = useState(false);
+  const [campaignDrawerOpen, setCampaignDrawerOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(ViewMode.Month);
   const [filterAdvertiser, setFilterAdvertiser] = useState<string>("all");
+  const [expandedCampaignIds, setExpandedCampaignIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
 
-  // Auto-open drawer from URL query param
+  // Auto-open flight drawer from URL query param
   useEffect(() => {
     const flightId = searchParams.get('flight');
     if (flightId) {
       const flight = flights.find(f => f.id === flightId);
       if (flight) {
         setSelectedFlight(flight);
-        setDrawerOpen(true);
+        setFlightDrawerOpen(true);
       }
     }
   }, [searchParams, flights]);
+
+  // Initialize all campaigns as expanded
+  useEffect(() => {
+    setExpandedCampaignIds(new Set(campaigns.map(c => c.id)));
+  }, [campaigns]);
 
   // Simulate loading
   useEffect(() => {
@@ -73,7 +82,7 @@ export default function Campaigns() {
       const campaignStart = new Date(Math.min(...flightStarts));
       const campaignEnd = new Date(Math.max(...flightEnds));
 
-      // Campaign task (parent)
+      // Campaign task (parent) - use expandedCampaignIds to determine hideChildren
       newTasks.push({
         id: campaign.id,
         name: campaign.name,
@@ -81,7 +90,7 @@ export default function Campaigns() {
         end: campaignEnd,
         type: "project",
         progress: 0,
-        hideChildren: false,
+        hideChildren: !expandedCampaignIds.has(campaign.id),
         styles: {
           backgroundColor: "#93c5fd",
           backgroundSelectedColor: "#60a5fa",
@@ -122,36 +131,48 @@ export default function Campaigns() {
     });
 
     setTasks(newTasks);
-  }, [filteredCampaigns, flights, deliveryData]);
+  }, [filteredCampaigns, flights, deliveryData, expandedCampaignIds]);
 
-  // Toggle expand/collapse for campaign
+  // Toggle expand/collapse for campaign (caret only)
   const toggleProject = (task: Task) => {
-    setTasks(prev => prev.map(t => 
-      t.id === task.id ? { ...t, hideChildren: !t.hideChildren } : t
-    ));
+    setExpandedCampaignIds(prev => {
+      const next = new Set(prev);
+      if (next.has(task.id)) {
+        next.delete(task.id);
+      } else {
+        next.add(task.id);
+      }
+      return next;
+    });
   };
 
+  // Handle bar clicks - flight opens drawer, campaign opens campaign drawer
   const handleTaskSelect = (task: Task, isSelected: boolean) => {
     if (!task) return;
     
     if (task.type === "project") {
-      // Toggle expand/collapse when clicking campaign bar
-      toggleProject(task);
+      // Clicking campaign bar opens CampaignDrawer
+      const campaign = campaigns.find((c) => c.id === task.id);
+      if (campaign) {
+        setSelectedCampaign(campaign);
+        setCampaignDrawerOpen(true);
+      }
       return;
     }
     
-    if (task.type === "task" && task.id.startsWith("flt_")) {
+    if (task.type === "task") {
+      // Clicking flight bar opens FlightDrawer
       const flight = flights.find((f) => f.id === task.id);
       if (flight) {
         setSelectedFlight(flight);
-        setDrawerOpen(true);
+        setFlightDrawerOpen(true);
         setSearchParams({ flight: flight.id });
       }
     }
   };
 
-  const handleDrawerClose = (open: boolean) => {
-    setDrawerOpen(open);
+  const handleFlightDrawerClose = (open: boolean) => {
+    setFlightDrawerOpen(open);
     if (!open) {
       setSearchParams({});
     }
@@ -219,6 +240,11 @@ export default function Campaigns() {
           </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4" role="status" aria-live="polite" aria-atomic="true">
+            <p className="text-sm text-muted-foreground">
+              Scroll horizontally to see more months
+            </p>
+          </div>
           {isLoading ? (
             <div className="space-y-3">
               <Skeleton className="h-12 w-full" />
@@ -256,8 +282,14 @@ export default function Campaigns() {
 
       <FlightDrawer
         flight={selectedFlight}
-        open={drawerOpen}
-        onOpenChange={handleDrawerClose}
+        open={flightDrawerOpen}
+        onOpenChange={handleFlightDrawerClose}
+      />
+
+      <CampaignDrawer
+        campaign={selectedCampaign}
+        open={campaignDrawerOpen}
+        onOpenChange={setCampaignDrawerOpen}
       />
     </div>
     </ErrorBoundary>

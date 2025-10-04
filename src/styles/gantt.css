@@ -74,3 +74,35 @@
 .dark .ganttNameCol {
   background: hsl(var(--background));
 }
+
+/* Bar label truncation with hover reveal - PROMPT 5 */
+.ganttBarLabel {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ganttBar:hover .ganttBarLabel {
+  overflow: visible;
+  white-space: normal;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .ganttGridCell {
+    width: 48px;
+  }
+}
+
+/* Ensure consistent row height */
+.gantt-row {
+  height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+@media (min-width: 768px) {
+  .gantt-row {
+    height: 40px;
+  }
+}
