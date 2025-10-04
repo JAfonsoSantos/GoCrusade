@@ -44,16 +44,25 @@ const queryClient = new QueryClient();
 
 function TabSync() {
   const location = useLocation();
-  const { tabs, switchTab } = useTabsStore();
+  const tabs = useTabsStore(state => state.tabs);
+  const activeId = useTabsStore(state => state.activeId);
+  const switchTab = useTabsStore(state => state.switchTab);
   
   useEffect(() => {
     const matchingTab = tabs.find(t => t.path === location.pathname);
+    
     if (matchingTab) {
-      switchTab(matchingTab.id);
+      // Only switch if it's not already the active tab
+      if (matchingTab.id !== activeId) {
+        switchTab(matchingTab.id);
+      }
     } else {
-      switchTab("home");
+      // Switch to home only if not already on home
+      if (activeId !== "home") {
+        switchTab("home");
+      }
     }
-  }, [location.pathname, tabs, switchTab]);
+  }, [location.pathname]); // Only depend on pathname to avoid loops
   
   return null;
 }

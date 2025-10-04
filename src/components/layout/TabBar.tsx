@@ -43,14 +43,18 @@ export default function TabBar({ homeTitle = "Home", homePath = "/" }: Props) {
     return () => window.removeEventListener("keydown", onKey);
   }, [tabs, activeId, closeTab, reopenLastClosed, switchTab, navigate]);
 
-  useEffect(() => {
-    const current = tabs.find(t => t.id === activeId);
-    if (current?.path) navigate(current.path);
-  }, [activeId, tabs, navigate]);
+  // Remove auto-navigation - let TabSync handle URL syncing instead
+  // to avoid circular updates between navigation and tab switching
 
   const go = (id: string, path: string) => {
-    switchTab(id);
-    navigate(path);
+    // Navigate first, then let TabSync handle the tab switch
+    // This prevents double updates
+    if (window.location.pathname !== path) {
+      navigate(path);
+    } else {
+      // If already on this path, just switch the tab
+      switchTab(id);
+    }
   };
 
   return (
