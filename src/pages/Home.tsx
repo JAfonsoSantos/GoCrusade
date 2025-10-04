@@ -2,8 +2,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Zap, Link as LinkIcon, TrendingUp, Target, Megaphone, DollarSign, Eye, MousePointer } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useProfile } from "@/hooks/useProfile";
+import { SeedDemoDataButton } from "@/components/SeedDemoDataButton";
 
 export default function Home() {
+  const { data: profile, isLoading } = useProfile();
+  
+  // Show seed data button if user has no business
+  if (!isLoading && !profile?.business_id) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Welcome to Crusade</h1>
+          <p className="text-muted-foreground">Let's get you started with some demo data.</p>
+        </div>
+        <SeedDemoDataButton />
+      </div>
+    );
+  }
+
   const kpis = [
     { label: "Active Ad Units", value: "24", icon: Target, trend: "+3 this week" },
     { label: "Active Campaigns", value: "12", icon: Megaphone, trend: "2 ending soon" },
